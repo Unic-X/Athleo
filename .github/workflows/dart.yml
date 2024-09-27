@@ -30,11 +30,10 @@ jobs:
     - name: Install Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.10.5'  # Specify the Flutter version you are using
+        flutter-version: '3.24.3'  
 
-    # Change to the project directory if it's not at the root
     - name: Change to project directory
-      run: cd your_project_directory # Replace 'your_project_directory' with the actual path
+      run: cd frontend
 
     # Run Flutter Pub Get to restore dependencies
     - name: Install dependencies
