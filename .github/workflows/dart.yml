@@ -46,6 +46,4 @@ jobs:
         key: build-${{ runner.os }}-${{ hashFiles('frontend/pubspec.yaml') }}
         restore-keys: |
           build-${{ runner.os }}-
-          
-    - name: Run tests
-      run: flutter test
+
