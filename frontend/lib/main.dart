@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-//import 'package:hack_space_temp/Screens/record.dart';
-//import 'package:hack_space_temp/Screens/welcome.dart';
+import 'package:hack_space_temp/Screens/record.dart';
+import 'package:hack_space_temp/Screens/welcome.dart';
 import 'package:firebase_core/firebase_core.dart';
-//import 'package:hack_space_temp/Screens/map.dart';
+import 'package:hack_space_temp/Screens/map.dart';
 import 'package:hack_space_temp/Screens/login/manage_user.dart';
 
 void main() async {
@@ -20,8 +20,8 @@ class Athleo extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       home: const AuthPage(),
       routes: {
-        //      '/map': (context) => const MapScreen(),
-        //      '/record': (context) => const RecordScreen(),
+        '/map': (context) => const MapScreen(),
+        '/record': (context) => const RecordScreen(),
       },
       title: "Fence Mate",
       theme: ThemeData(
