@@ -26,8 +26,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
   String? uid = FirebaseAuth.instance.currentUser?.uid;
   String userName = 'Unknown';
   int coins = 0;
-  double today_dist = 0.0;
-  double today_time = 0.0;
+  int today_dist = 0;
+  int today_time = 0;
   List achievements= [];
   List friends = [];
   List<RunningData> runningData = [];
@@ -112,7 +112,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Your Progression'),
+        title: const Text('Your Progression', 
+        style: TextStyle(fontFamily: 'Nunito',
+            fontWeight: FontWeight.w600
+        ),
+        ),
         backgroundColor: const Color(0xFF229DAB),
         actions: [
           IconButton(
@@ -143,9 +147,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
                               Text(
                                 "Hello, $userName",
                                 style: const TextStyle(
+                                  fontFamily: 'Comfortaa',
                                   fontSize: 28,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w500, // Light weight for a sleek look
                                   color: Colors.black87,
+                                  letterSpacing: 0.5, // Slight letter spacing for a modern touch
                                 ),
                               ),
                               Container(

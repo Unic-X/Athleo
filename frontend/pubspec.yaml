@@ -42,3 +42,20 @@ flutter:
      - lib/images/
      - assets/marker/
      - assets/greek-coin.png
+  fonts:
+    - family: Comfortaa
+      fonts:
+        - asset: assets/fonts/Comfortaa-Medium.ttf
+        - asset: assets/fonts/Comfortaa-Regular.ttf
+        - asset: assets/fonts/Comfortaa-SemiBold.ttf
+
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Light.ttf
+        - asset: assets/fonts/Roboto-Black.ttf
+        - asset: assets/fonts/Roboto-LightItalic.ttf
+    - family: Nunito
+      fonts:
+        - asset: assets/fonts/Nunito-Medium.ttf
+        - asset: assets/fonts/Nunito-SemiBold.ttf
+        - asset: assets/fonts/Nunito-Bold.ttf
