@@ -53,7 +53,14 @@ class _Register_Page extends State<Register_Page> {
           "fri": 0,
           "sat": 0,
           "sun": 0,
-        } // Optionally, store the email as well
+        },
+        'coins':0,
+        'today_dist':0,
+        'today_time':0,
+        'weight': 70,
+        'height': 170,
+        'achievements': [],
+        'friends':[]// Optionally, store the email as well
       });
 
       Navigator.pop(context); // Close the progress indicator

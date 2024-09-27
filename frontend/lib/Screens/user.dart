@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:hack_space_temp/Screens/components/bottom_nav_bar.dart';
-import 'package:hack_space_temp/Screens/components/my_button.dart';
+// import 'package:hack_space_temp/Screens/components/my_button.dart';
 import 'package:intl/intl.dart';
 
 class UserProfilePage extends StatefulWidget {
@@ -25,6 +25,11 @@ class UserProfilePage extends StatefulWidget {
 class _UserProfilePageState extends State<UserProfilePage> {
   String? uid = FirebaseAuth.instance.currentUser?.uid;
   String userName = 'Unknown';
+  int coins = 0;
+  double today_dist = 0.0;
+  double today_time = 0.0;
+  List achievements= [];
+  List friends = [];
   List<RunningData> runningData = [];
   bool isLoading = true;
   String errorMessage = '';
@@ -32,10 +37,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
   @override
   void initState() {
     super.initState();
-    _getUsername();
+    _getUserdata();
   }
 
-  void _getUsername() async {
+  void _getUserdata() async {
     if (uid == null) {
       setState(() {
         isLoading = false;
@@ -52,14 +57,22 @@ class _UserProfilePageState extends State<UserProfilePage> {
         Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
         setState(() {
           userName = data['username'] ?? 'Unknown';
+          userName = userName[0].toUpperCase() + userName.substring(1).toLowerCase();
           runningData = _parseRunningData(data['week_ac']);
+          coins = data['coins'];
+          today_dist = data['today_dist'];
+          today_time = data['today_time'];
+          achievements = data['achievements'];
+          friends = data['friends'];
           isLoading = false;
         });
+
+
       } else {
-        // setState(() {
-        //   isLoading = false;
-        //   errorMessage = 'User document not found';
-        // });
+        setState(() {
+          isLoading = false;
+          errorMessage = 'User document not found';
+        });
       }
     } catch (e) {
       print("Error fetching user data: $e");
@@ -68,6 +81,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
         errorMessage = 'Failed to load user data';
       });
     }
+
+
   }
 
   List<RunningData> _parseRunningData(Map<String, dynamic> data) {
@@ -157,7 +172,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                                     ),
                                     const SizedBox(width: 5),
                                     Text(
-                                      '${widget.coins}',
+                                      '$coins',
                                       style: const TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
@@ -173,11 +188,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.start,
                             children: [
-                              _buildStat("Distance", "12.56 mi",
+                              _buildStat('Distance', '$today_dist',
                                   const Color(0xFFf3e035)),
                               const SizedBox(width: 10),
                               _buildStat(
-                                  "Time", "1h 40m", const Color(0xFFDF5C31)),
+                                  'Time', '$today_time', const Color(0xFFDF5C31)),
                             ],
                           ),
                           const SizedBox(height: 20),
@@ -300,7 +315,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                               ),
                             ),
                           ),
-                          
+
                         ],
                       ),
                     ),
