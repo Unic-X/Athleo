@@ -112,7 +112,7 @@ class _RunStatsPageState extends State<RunStatsPage> {
                     backgroundColor: _isRunning ? Colors.black : Color(0xFF00E5FF), // Change color based on state
                   ),
                   child: Text(
-                    _isRunning ? 'STOP' : 'RESUME',
+                    _isRunning ? 'PAUSE' : 'RESUME',
                     style: TextStyle(
                       fontSize: 18,
                       color: _isRunning ? Color(0xFF00E5FF) : Colors.black, // Change text color based on state
@@ -120,7 +120,29 @@ class _RunStatsPageState extends State<RunStatsPage> {
                   ),
                 ),
               ),
-            ],
+              Container(
+                decoration: BoxDecoration(
+                  color:Colors.red.withOpacity(1.0),
+                  shape: BoxShape.circle,
+                ),
+                padding: const EdgeInsets.all(10),
+                margin: const EdgeInsets.all(15),
+                child: ElevatedButton(
+                  onPressed: () {
+                    TimerManager().stopTimer(); // Stop the timer
+                    TimerManager().reset(); // Reset the timer to 0
+                    Navigator.pop(context); // Go back to RecordScreen
+                },
+                style: ElevatedButton.styleFrom(
+                shape: const CircleBorder(),
+                padding: const EdgeInsets.all(20),
+                backgroundColor: Colors.red, // Red color for the stop button
+                  ),
+                  child: Text('STOP',style: TextStyle(fontSize: 18, color: Colors.white), // Change text color as needed
+                  ),
+                ),
+              ),
+            ], //children
           ),
         ],
       ),
