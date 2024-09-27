@@ -197,8 +197,6 @@ class _MapScreenState extends State<RecordScreen> {
                     MainAxisAlignment.spaceEvenly, // Space out buttons evenly
                 children: [
                   FloatingActionButton(
-                    heroTag:
-                        "sportButton", // Use different hero tags for each FAB to avoid issues
                     onPressed: () {
                       // Handle sport button press
                     },
@@ -206,7 +204,6 @@ class _MapScreenState extends State<RecordScreen> {
                     backgroundColor: const Color(0xFF00E5FF),
                   ),
                   FloatingActionButton(
-                    heroTag: "sensorButton",
                     onPressed: () {
                       // Handle sensor button press
                     },
@@ -214,7 +211,6 @@ class _MapScreenState extends State<RecordScreen> {
                     backgroundColor: const Color(0xFF00E5FF),
                   ),
                   FloatingActionButton(
-                    heroTag: "musicButton",
                     onPressed: () {
                       // Handle music button press
                     },
