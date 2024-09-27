@@ -21,6 +21,7 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   BitmapDescriptor? customMarkerIcon;
+  BitmapDescriptor? arrowIcon;
 
   final Completer<GoogleMapController> _controller =
       Completer<GoogleMapController>();
@@ -44,6 +45,8 @@ class _MapScreenState extends State<MapScreen> {
     super.initState();
     _getCurrentLocation();
     getRoutes();
+    _loadCustomMarker();
+    _loadArrow();
     _listenToLocationChanges();
   }
 
@@ -158,13 +161,23 @@ class _MapScreenState extends State<MapScreen> {
     final ByteData data =
         await DefaultAssetBundle.of(context).load('assets/marker.png');
     final Uint8List bytes = data.buffer.asUint8List();
-    final codec = await ui.instantiateImageCodec(bytes, targetWidth: 120);
+    final codec = await ui.instantiateImageCodec(bytes, targetWidth: 50);
     final ui.FrameInfo fi = await codec.getNextFrame();
     final image = await fi.image.toByteData(format: ui.ImageByteFormat.png);
-
     setState(() {
-      customMarkerIcon =
-          BitmapDescriptor.fromBytes(image!.buffer.asUint8List());
+      customMarkerIcon = BitmapDescriptor.bytes(image!.buffer.asUint8List());
+    });
+  }
+
+  Future<void> _loadArrow() async {
+    final ByteData data =
+        await DefaultAssetBundle.of(context).load('assets/arrow.png');
+    final Uint8List bytes = data.buffer.asUint8List();
+    final codec = await ui.instantiateImageCodec(bytes, targetWidth: 50);
+    final ui.FrameInfo fi = await codec.getNextFrame();
+    final image = await fi.image.toByteData(format: ui.ImageByteFormat.png);
+    setState(() {
+      arrowIcon = BitmapDescriptor.bytes(image!.buffer.asUint8List());
     });
   }
 
@@ -218,7 +231,7 @@ class _MapScreenState extends State<MapScreen> {
       markers.add(Marker(
         markerId: MarkerId('arrow_${routeIndex}_$i'),
         position: middlePoint,
-        icon: customMarkerIcon ?? BitmapDescriptor.defaultMarker,
+        icon: arrowIcon ?? BitmapDescriptor.defaultMarker,
         rotation: rotation,
         anchor: Offset(0.5, 0.5),
       ));
@@ -249,7 +262,6 @@ class _MapScreenState extends State<MapScreen> {
 
       if (distance <= 20) {
         print("Checkpoint reached!");
-        // You can add more logic here, like showing a notification or updating UI
       }
     }
   }
