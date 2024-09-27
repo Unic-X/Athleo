@@ -167,7 +167,10 @@ class _RecordScreenState extends State<RecordScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Record', style: TextStyle(fontSize: 22)),
+        title: const Text(
+          'Record Your Run',
+          style: TextStyle(fontFamily: 'Nunito', fontWeight: FontWeight.w600),
+        ),
         backgroundColor: const Color(0xFF229DAB),
         centerTitle: true,
         actions: [
@@ -203,7 +206,7 @@ class _RecordScreenState extends State<RecordScreen> {
             child: Center(
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(1.0),
+                  color: Color(0xFF112939),
                   shape: BoxShape.circle,
                 ),
                 padding: const EdgeInsets.all(10),
@@ -235,7 +238,7 @@ class _RecordScreenState extends State<RecordScreen> {
                   style: ElevatedButton.styleFrom(
                     shape: const CircleBorder(),
                     padding: const EdgeInsets.all(20),
-                    backgroundColor: const Color(0xFF00E5FF),
+                    backgroundColor: const Color(0xFFFFFCF0),
                   ),
                   child: const Text('START',
                       style: TextStyle(fontSize: 18, color: Colors.black)),
@@ -251,7 +254,7 @@ class _RecordScreenState extends State<RecordScreen> {
               margin: const EdgeInsets.all(15),
               padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(1.0),
+                color: Color(0xFF112939),
                 borderRadius: BorderRadius.circular(30),
               ),
               child: Row(
@@ -261,21 +264,21 @@ class _RecordScreenState extends State<RecordScreen> {
                     onPressed: () {
                       // Handle sport button press
                     },
-                    backgroundColor: const Color(0xFF00E5FF),
+                    backgroundColor: const Color(0xFFFFFCF0),
                     child: const Icon(Icons.sports),
                   ),
                   FloatingActionButton(
                     onPressed: () {
                       // Handle sensor button press
                     },
-                    backgroundColor: const Color(0xFF00E5FF),
+                    backgroundColor: const Color(0xFFFFFCF0),
                     child: const Icon(Icons.sensors),
                   ),
                   FloatingActionButton(
                     onPressed: () {
                       // Handle music button press
                     },
-                    backgroundColor: const Color(0xFF00E5FF),
+                    backgroundColor: const Color(0xFFFFFCF0),
                     child: const Icon(Icons.music_note),
                   ),
                 ],
