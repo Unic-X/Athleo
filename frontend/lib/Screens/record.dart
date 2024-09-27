@@ -163,8 +163,25 @@ class _MapScreenState extends State<RecordScreen> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => RunStatsPage()),
+                      PageRouteBuilder(
+                        pageBuilder: (context, animation, secondaryAnimation) => RunStatsPage(),
+                        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                          const begin = Offset(0.0, 1.0); // Start at the bottom
+                          const end = Offset.zero;        // End at the top (default position)
+                          const curve = Curves.easeInOut; // Smooth transition curve
+
+                          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                          var offsetAnimation = animation.drive(tween);
+
+                          return SlideTransition(
+                            position: offsetAnimation,
+                            child: child,
+                          );
+                        },
+                        transitionDuration: Duration(milliseconds: 300), // Transition speed
+                      ),
                     );
+
                   },
                   style: ElevatedButton.styleFrom(
                     shape: const CircleBorder(),
