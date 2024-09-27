@@ -79,7 +79,7 @@ class _RunStatsPageState extends State<RunStatsPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              // Pause Button
+              // Pause/Resume Button
               ElevatedButton(
                 onPressed: () {
                   setState(() {
@@ -92,13 +92,15 @@ class _RunStatsPageState extends State<RunStatsPage> {
                   });
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _isRunning ? Colors.orange : Color(0xFF00E5FF),
+                  backgroundColor: Colors.white,
+                  side: BorderSide(color: Colors.black, width: 5), // Thick black border
                   padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                 ),
-                child: Text(
-                  _isRunning ? 'PAUSE' : 'RESUME',
-                  style: TextStyle(fontSize: 18, color: Colors.black),
+                child: Icon(
+                  _isRunning ? Icons.pause : Icons.play_arrow,
+                  color: Colors.black,
+                  size: 30,
                 ),
               ),
               // Stop Button
@@ -113,13 +115,15 @@ class _RunStatsPageState extends State<RunStatsPage> {
                   _navigateBackToRecord(); // Navigate back to record.dart
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
+                  backgroundColor: Colors.white,
+                  side: BorderSide(color: Colors.black, width: 5), // Thick black border
                   padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                 ),
-                child: Text(
-                  'STOP',
-                  style: TextStyle(fontSize: 18, color: Colors.white),
+                child: Icon(
+                  Icons.stop,
+                  color: Colors.black,
+                  size: 30,
                 ),
               ),
             ],
