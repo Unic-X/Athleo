@@ -1,15 +1,6 @@
 import 'package:flutter/material.dart';
-
-void main() => runApp(MyApp());
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: RunStatsPage(),
-    );
-  }
-}
+import 'dart:async';
+import 'package:hack_space_temp/Screens/time_manager.dart'; // Ensure you import your TimerManager
 
 class RunStatsPage extends StatefulWidget {
   @override
@@ -17,18 +8,38 @@ class RunStatsPage extends StatefulWidget {
 }
 
 class _RunStatsPageState extends State<RunStatsPage> {
-  // Initial default values
   String time = "00:00:00";
   String pace = "0:00 /KM";
   String distance = "0.00 KM";
 
-  // This function can be modified to fetch data from the backend
-  void updateStats(String newTime, String newPace, String newDistance) {
-    setState(() {
-      time = newTime;
-      pace = newPace;
-      distance = newDistance;
+  @override
+  void initState() {
+    super.initState();
+    TimerManager().startTimer(); // Start the timer
+    time = _formatTime(TimerManager().currentTime);
+
+    // Update the time every second
+    Timer.periodic(Duration(seconds: 1), (timer) {
+      setState(() {
+        int currentSeconds = TimerManager().currentTime;
+        time = _formatTime(currentSeconds);
+      });
     });
+  }
+
+  // Helper function to format seconds to HH:MM:SS
+  String _formatTime(int seconds) {
+    final hours = (seconds ~/ 3600).toString().padLeft(2, '0');
+    final minutes = ((seconds % 3600) ~/ 60).toString().padLeft(2, '0');
+    final secs = (seconds % 60).toString().padLeft(2, '0');
+    return "$hours:$minutes:$secs";
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    // Optionally stop the timer when the page is disposed
+    // TimerManager().stopTimer();
   }
 
   @override
@@ -48,7 +59,7 @@ class _RunStatsPageState extends State<RunStatsPage> {
               ],
             ),
           ),
-          Divider(thickness: 2),  // Line between sections
+          Divider(thickness: 2),
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -60,7 +71,7 @@ class _RunStatsPageState extends State<RunStatsPage> {
               ],
             ),
           ),
-          Divider(thickness: 2),  // Line between sections
+          Divider(thickness: 2),
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
