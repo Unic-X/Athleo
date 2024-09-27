@@ -7,6 +7,7 @@ import (
     "log"
     "net/http"
     "math"
+    "firebase.google.com/go/auth"
     "strconv"
 )
 
@@ -245,7 +246,31 @@ func setCheckpoints(routes []RouteDetails) {
     }
 }
 
+func verifyIDToken(idToken string) (*auth.Token, error) {
+	token, err := authClient.VerifyIDToken(ctx, idToken)
+	if err != nil {
+		return nil, err
+	}
+	return token, nil
+}
+
 func getRoutes(w http.ResponseWriter, req *http.Request){
+
+    authHeader := req.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Missing Authorization Header", http.StatusUnauthorized)
+		return
+	}
+
+	token := authHeader[len("Bearer "):]
+
+	verifiedToken, err := verifyIDToken(token)
+	if err != nil {
+		http.Error(w, "Invalid Token", http.StatusUnauthorized)
+		return
+	}
+
+	fmt.Printf("Authenticated user UID: %s\n", verifiedToken.UID)
 
     queryParams := req.URL.Query()
     
