@@ -11,45 +11,41 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: frontend
 
     steps:
-    # Checkout the latest version of the code
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    # Cache Flutter SDK
     - name: Cache Flutter SDK
       uses: actions/cache@v3
       with:
         path: ~/.pub-cache
-        key: flutter-${{ runner.os }}-${{ hashFiles('pubspec.yaml') }}
+        key: flutter-${{ runner.os }}-${{ hashFiles('frontend/pubspec.yaml') }}
         restore-keys: |
           flutter-${{ runner.os }}-
 
-    # Install Flutter SDK
     - name: Install Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.24.3'  
-
-    - name: Change to project directory
-      run: cd frontend
+        flutter-version: '3.24.3'
+        
+    - name: List Directory Contents
+      run: ls -R
       
-    - name: List Directory
-      run: ls 
-    # Run Flutter Pub Get to restore dependencies
     - name: Install dependencies
       run: flutter pub get
-
-    # Cache build artifacts
+      
     - name: Cache build
       uses: actions/cache@v3
       with:
-        path: build
-        key: build-${{ runner.os }}-${{ hashFiles('pubspec.yaml') }}
+        path: frontend/build
+        key: build-${{ runner.os }}-${{ hashFiles('frontend/pubspec.yaml') }}
         restore-keys: |
           build-${{ runner.os }}-
-
-    # Run tests
+          
     - name: Run tests
       run: flutter test
