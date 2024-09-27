@@ -1,5 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:hack_space_temp/Screens/components/error_dialog.dart';
 import 'package:hack_space_temp/Screens/components/my_button.dart';
 import 'package:hack_space_temp/Screens/components/my_textfield.dart';
 import 'package:hack_space_temp/Screens/components/square_tile.dart';
@@ -13,9 +15,10 @@ class Register_Page extends StatefulWidget {
 }
 
 class _Register_Page extends State<Register_Page> {
-  final usernameController = TextEditingController();
-
-  final passwordController = TextEditingController();
+  final realusernameController =
+      TextEditingController(); // Added for the real username
+  final usernameController = TextEditingController(); // For email
+  final passwordController = TextEditingController(); // For password
 
   // sign user in method
   void signUserIn() async {
@@ -26,11 +29,47 @@ class _Register_Page extends State<Register_Page> {
             child: CircularProgressIndicator(),
           );
         });
+
     try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: usernameController.text, password: passwordController.text);
-      Navigator.pop(context);
-    } catch (e) {}
+      // Create the user
+      UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+              email: usernameController.text,
+              password: passwordController.text);
+
+      // Get the user ID (UID)
+      String uid = userCredential.user!.uid;
+
+      // Store the username in Firestore using the UID
+      await FirebaseFirestore.instance.collection('users').doc(uid).set({
+        'username':
+            realusernameController.text, // Store the real username in Firestore
+        'email': usernameController.text,
+        'week_ac': {
+          "mon": 0,
+          "tue": 0,
+          "wed": 0,
+          "thu": 0,
+          "fri": 0,
+          "sat": 0,
+          "sun": 0,
+        } // Optionally, store the email as well
+      });
+
+      Navigator.pop(context); // Close the progress indicator
+    } catch (e) {
+      // Handle errors (e.g., display error messages)
+      showErrorDialog(context, e.toString());
+    }
+  }
+
+  @override
+  void dispose() {
+    // Don't forget to dispose of the controllers when the widget is disposed
+    realusernameController.dispose();
+    usernameController.dispose();
+    passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -53,7 +92,7 @@ class _Register_Page extends State<Register_Page> {
 
                 const SizedBox(height: 30),
 
-                // welcome back, you've been missed!
+                // Create an account text
                 Text(
                   'Create an account',
                   style: TextStyle(
@@ -64,41 +103,33 @@ class _Register_Page extends State<Register_Page> {
 
                 const SizedBox(height: 24),
 
-                // username textfield
+                // Username textfield
                 MyTextField(
-                  controller: usernameController,
+                  controller: realusernameController, // Corrected
                   hintText: 'Username',
+                  obscureText: false,
+                ),
+                const SizedBox(height: 10),
+
+                // Email textfield
+                MyTextField(
+                  controller: usernameController, // Email controller
+                  hintText: 'Email',
                   obscureText: false,
                 ),
 
                 const SizedBox(height: 10),
 
-                // password textfield
+                // Password textfield
                 MyTextField(
-                  controller: passwordController,
+                  controller: passwordController, // Password controller
                   hintText: 'Password',
                   obscureText: true,
                 ),
 
-                const SizedBox(height: 10),
-
-                // forgot password?
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Forgot Password?',
-                        style: TextStyle(color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                ),
-
                 const SizedBox(height: 25),
 
-                // sign in button
+                // Sign up button
                 MyButton(
                   text: "Sign Up",
                   onTap: signUserIn,
@@ -106,7 +137,7 @@ class _Register_Page extends State<Register_Page> {
 
                 const SizedBox(height: 50),
 
-                // or continue with
+                // Or continue with
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 25.0),
                   child: Row(
@@ -136,23 +167,19 @@ class _Register_Page extends State<Register_Page> {
 
                 const SizedBox(height: 50),
 
-                // google + apple sign in buttons
+                // Google and Apple sign-in buttons
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: const [
-                    // google button
                     SquareTile(imagePath: 'lib/images/google.png'),
-
                     SizedBox(width: 25),
-
-                    // apple button
-                    SquareTile(imagePath: 'lib/images/apple.png')
+                    SquareTile(imagePath: 'lib/images/apple.png'),
                   ],
                 ),
 
                 const SizedBox(height: 50),
 
-                // not a member? register now
+                // Already have an account? Sign in
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [

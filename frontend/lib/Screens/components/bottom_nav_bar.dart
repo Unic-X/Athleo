@@ -11,25 +11,22 @@ class BottomNavBar extends StatelessWidget {
     final bool isOnHomeScreen = ModalRoute.of(context)?.settings.name == '/map';
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-          vertical: 10), // Adjust padding for better spacing
-      margin: const EdgeInsets.all(15), // Add margin around the navbar
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      margin: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.8), // Slightly transparent background
-        borderRadius:
-            BorderRadius.circular(30), // Rounded corners for the container
+        color: Colors.black.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2), // Subtle shadow effect
+            color: Colors.black.withOpacity(0.2),
             spreadRadius: 1,
             blurRadius: 10,
-            offset: const Offset(0, 3), // Shadow position
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: Row(
-        mainAxisAlignment:
-            MainAxisAlignment.spaceEvenly, // Space out buttons evenly
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: <Widget>[
           IconButton(
             onPressed: isOnHomeScreen
@@ -41,9 +38,7 @@ class BottomNavBar extends StatelessWidget {
                           builder: (context) => const MapScreen()),
                     );
                   },
-            icon: const Icon(Icons.home,
-                color:
-                    const Color(0xFF2CD6E9)), // White icon color for contrast
+            icon: const Icon(Icons.home, color: Color(0xFF2CD6E9)),
           ),
           IconButton(
             onPressed: () {
@@ -52,11 +47,12 @@ class BottomNavBar extends StatelessWidget {
                 MaterialPageRoute(builder: (context) => const RecordScreen()),
               );
             },
-            icon: const Icon(Icons.fiber_manual_record,
-                color: const Color(0xFF2CD6E9)),
+            icon:
+                const Icon(Icons.fiber_manual_record, color: Color(0xFF2CD6E9)),
           ),
           IconButton(
             onPressed: () {
+              final now = DateTime.now();
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -64,19 +60,19 @@ class BottomNavBar extends StatelessWidget {
                     userName: 'John Doe',
                     coins: 120,
                     runningData: [
-                      RunningData('Mon', 5.2),
-                      RunningData('Tue', 3.8),
-                      RunningData('Wed', 6.1),
-                      RunningData('Thu', 0),
-                      RunningData('Fri', 7.3),
-                      RunningData('Sat', 8.2),
-                      RunningData('Sun', 0),
+                      RunningData(now.subtract(const Duration(days: 6)), 5.2),
+                      RunningData(now.subtract(const Duration(days: 5)), 3.8),
+                      RunningData(now.subtract(const Duration(days: 4)), 6.1),
+                      RunningData(now.subtract(const Duration(days: 3)), 0),
+                      RunningData(now.subtract(const Duration(days: 2)), 7.3),
+                      RunningData(now.subtract(const Duration(days: 1)), 8.2),
+                      RunningData(now, 0),
                     ],
                   ),
                 ),
               );
             },
-            icon: const Icon(Icons.person, color: const Color(0xFF2CD6E9)),
+            icon: const Icon(Icons.person, color: Color(0xFF2CD6E9)),
           ),
         ],
       ),

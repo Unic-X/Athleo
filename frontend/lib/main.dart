@@ -22,6 +22,7 @@ class Athleo extends StatelessWidget {
       routes: {
         '/map': (context) => const MapScreen(),
         '/record': (context) => const RecordScreen(),
+        '/login': (context) => const AuthPage(),
       },
       title: "Fence Mate",
       theme: ThemeData(
