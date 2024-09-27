@@ -37,4 +37,5 @@ flutter:
   assets:
      - assets/images/
      - lib/images/
+     - assets/marker/
      - assets/greek-coin.png
