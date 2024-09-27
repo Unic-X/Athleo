@@ -1,36 +1,58 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:hack_space_temp/Screens/time_manager.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 
 class RunStatsPage extends StatefulWidget {
-  final double distance; // Add this to accept distance
+  final Stream<double> distanceStream;
 
-  RunStatsPage({Key? key, required this.distance}) : super(key: key); // Modify the constructor
+  RunStatsPage({Key? key, required this.distanceStream}) : super(key: key);
 
   @override
   _RunStatsPageState createState() => _RunStatsPageState();
 }
 
-
 class _RunStatsPageState extends State<RunStatsPage> {
   bool _isRunning = true;
   String time = "00:00:00";
   String pace = "0:00 /KM";
-  late String distance;
+  String distance = "0.00 KM";
+  late StreamSubscription<double> _distanceSubscription;
+  double _totalDistance = 0.0;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   void initState() {
     super.initState();
-    distance = (widget.distance / 1000).toStringAsFixed(2) + " KM"; // Convert meters to KM
     TimerManager().startTimer();
     time = _formatTime(TimerManager().currentTime);
+
+    _distanceSubscription = widget.distanceStream.listen((newDistance) {
+      setState(() {
+        _totalDistance = newDistance;
+        distance = (newDistance / 1000).toStringAsFixed(2) + " KM";
+        _updatePace(newDistance, TimerManager().currentTime);
+      });
+    });
 
     Timer.periodic(Duration(seconds: 1), (timer) {
       setState(() {
         int currentSeconds = TimerManager().currentTime;
         time = _formatTime(currentSeconds);
+        _updatePace(_totalDistance, currentSeconds);
       });
     });
+  }
+
+  void _updatePace(double distanceInMeters, int seconds) {
+    if (distanceInMeters > 0 && seconds > 0) {
+      double paceInMinutesPerKm = (seconds / 60) / (distanceInMeters / 1000);
+      int paceMinutes = paceInMinutesPerKm.floor();
+      int paceSeconds = ((paceInMinutesPerKm - paceMinutes) * 60).round();
+      pace = "$paceMinutes:${paceSeconds.toString().padLeft(2, '0')} /KM";
+    }
   }
 
   String _formatTime(int seconds) {
@@ -40,13 +62,65 @@ class _RunStatsPageState extends State<RunStatsPage> {
     return "$hours:$minutes:$secs";
   }
 
-  @override
-  void dispose() {
-    super.dispose();
+  String _getCurrentDayAbbreviation() {
+    return DateFormat('E').format(DateTime.now()).toLowerCase();
+  }
+  
+  Future<void> _pushDataToFirebase() async {
+    final User? user = _auth.currentUser;
+    if (user != null) {
+      final String uid = user.uid;
+      final int currentTime = TimerManager().currentTime;
+      final String currentDay = _getCurrentDayAbbreviation();
+      
+      final DocumentReference userDoc = FirebaseFirestore.instance.collection('users').doc(uid);
+      
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        DocumentSnapshot snapshot = await transaction.get(userDoc);
+        
+        if (!snapshot.exists) {
+          throw Exception("User document does not exist!");
+        }
+        
+        Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+        Map<String, dynamic> weekAc = data['week_ac'] ?? {
+          "mon": 0,
+          "tue": 0,
+          "wed": 0,
+          "thu": 0,
+          "fri": 0,
+          "sat": 0,
+          "sun": 0,
+        };
+        
+        weekAc[currentDay] = (weekAc[currentDay] ?? 0) + _totalDistance;
+        
+        transaction.update(userDoc, {
+          'today_dist': _totalDistance,
+          'today_time': currentTime,
+          'week_ac': weekAc,
+        });
+      });
+      
+      print('Data pushed to Firebase: Distance: $_totalDistance, Time: $currentTime, Day: $currentDay');
+    } else {
+      print('No user logged in');
+    }
+  }
+
+  void _stopRunAndPushData() async {
+    setState(() {
+      _isRunning = false;
+      TimerManager().stopTimer();
+    });
+    
+    await _pushDataToFirebase();
+    
+    TimerManager().reset();
+    _navigateBackToRecord();
   }
 
   void _navigateBackToRecord() {
-    // Navigate back to record.dart
     Navigator.of(context).pop();
   }
 
@@ -90,16 +164,16 @@ class _RunStatsPageState extends State<RunStatsPage> {
                 onPressed: () {
                   setState(() {
                     if (_isRunning) {
-                      TimerManager().stopTimer(); // Pause the timer
+                      TimerManager().stopTimer();
                     } else {
-                      TimerManager().startTimer(); // Resume the timer
+                      TimerManager().startTimer();
                     }
                     _isRunning = !_isRunning;
                   });
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
-                  side: BorderSide(color: Colors.black, width: 5), // Thick black border
+                  side: BorderSide(color: Colors.black, width: 5),
                   padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                 ),
@@ -111,18 +185,10 @@ class _RunStatsPageState extends State<RunStatsPage> {
               ),
               // Stop Button
               ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    TimerManager().stopTimer(); // Stop the timer
-                    TimerManager().reset(); // Reset the timer to zero
-                    _isRunning = false;
-                    time = "00:00:00";
-                  });
-                  _navigateBackToRecord(); // Navigate back to record.dart
-                },
+                onPressed: _stopRunAndPushData,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
-                  side: BorderSide(color: Colors.black, width: 5), // Thick black border
+                  side: BorderSide(color: Colors.black, width: 5),
                   padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                 ),
@@ -134,10 +200,16 @@ class _RunStatsPageState extends State<RunStatsPage> {
               ),
             ],
           ),
-          SizedBox(height: 20), // Add some space at the bottom
+          SizedBox(height: 20),
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _distanceSubscription.cancel();
+    super.dispose();
   }
 }
 

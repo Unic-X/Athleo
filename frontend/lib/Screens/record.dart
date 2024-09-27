@@ -9,7 +9,6 @@ class RecordScreen extends StatefulWidget {
   const RecordScreen({super.key});
   @override
   State<RecordScreen> createState() => _RecordScreenState();
-
 }
 
 
@@ -18,6 +17,7 @@ class _RecordScreenState extends State<RecordScreen> {
       Completer<GoogleMapController>();
   final DraggableScrollableController _draggableController =
       DraggableScrollableController();
+  final StreamController<double> _distanceStreamController = StreamController<double>.broadcast();
 
   LatLng currentLocation = const LatLng(21.1282267, 81.7653267);
   final Set<Marker> markers = {};
@@ -37,6 +37,7 @@ class _RecordScreenState extends State<RecordScreen> {
 
   @override
   void dispose() {
+    _distanceStreamController.close();
     positionStream?.cancel();
     super.dispose();
   }
@@ -96,6 +97,7 @@ class _RecordScreenState extends State<RecordScreen> {
           _updateMarker();
           _updatePolylines();
           _printDistance(); // Print updated distance
+          _distanceStreamController.add(_totalDistance); 
         });
       } catch (e) {
         print('Error getting location: $e');
@@ -272,7 +274,7 @@ class _RecordScreenState extends State<RecordScreen> {
                     Navigator.push(
                       context,
                       PageRouteBuilder(
-                        pageBuilder: (context, animation, secondaryAnimation) => RunStatsPage(distance: _totalDistance),
+                        pageBuilder: (context, animation, secondaryAnimation) => RunStatsPage(distanceStream: _distanceStreamController.stream),
                         transitionsBuilder: (context, animation, secondaryAnimation, child) {
                           const begin = Offset(0.0, 1.0);
                           const end = Offset.zero;
