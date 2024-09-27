@@ -45,7 +45,7 @@ class _MapScreenState extends State<RecordScreen> {
     _draggableController.animateTo(
       0.1,
       duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
+      curve: Curves.easeIn,
     );
   }
 
