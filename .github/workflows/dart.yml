@@ -34,7 +34,9 @@ jobs:
 
     - name: Change to project directory
       run: cd frontend
-
+      
+    - name: List Directory
+      run: ls 
     # Run Flutter Pub Get to restore dependencies
     - name: Install dependencies
       run: flutter pub get
