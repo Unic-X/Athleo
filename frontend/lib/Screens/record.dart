@@ -165,6 +165,9 @@ class _MapScreenState extends State<RecordScreen> {
                       context,
                       PageRouteBuilder(
                         pageBuilder: (context, animation, secondaryAnimation) => RunStatsPage(),
+                          // initialPace: "0:00 /KM", // Example pace
+                          // initialDistance: "0.00 KM", // Example distance
+
                         transitionsBuilder: (context, animation, secondaryAnimation, child) {
                           const begin = Offset(0.0, 1.0); // Start at the bottom
                           const end = Offset.zero;        // End at the top (default position)
