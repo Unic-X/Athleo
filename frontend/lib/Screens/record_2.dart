@@ -3,19 +3,25 @@ import 'dart:async';
 import 'package:hack_space_temp/Screens/time_manager.dart';
 
 class RunStatsPage extends StatefulWidget {
+  final double distance; // Add this to accept distance
+
+  RunStatsPage({Key? key, required this.distance}) : super(key: key); // Modify the constructor
+
   @override
   _RunStatsPageState createState() => _RunStatsPageState();
 }
+
 
 class _RunStatsPageState extends State<RunStatsPage> {
   bool _isRunning = true;
   String time = "00:00:00";
   String pace = "0:00 /KM";
-  String distance = "0.00 KM";
+  late String distance;
 
   @override
   void initState() {
     super.initState();
+    distance = (widget.distance / 1000).toStringAsFixed(2) + " KM"; // Convert meters to KM
     TimerManager().startTimer();
     time = _formatTime(TimerManager().currentTime);
 
