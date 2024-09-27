@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:hack_space_temp/Screens/map.dart';
-import 'package:hack_space_temp/Screens/milestone.dart';
 import 'package:hack_space_temp/Screens/record.dart';
 import 'package:hack_space_temp/Screens/user.dart';
 
@@ -12,7 +11,8 @@ class BottomNavBar extends StatelessWidget {
     final bool isOnHomeScreen = ModalRoute.of(context)?.settings.name == '/map';
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10), // Adjust padding for better spacing
+      padding: const EdgeInsets.symmetric(
+          vertical: 10), // Adjust padding for better spacing
       margin: const EdgeInsets.all(15), // Add margin around the navbar
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.8), // Slightly transparent background
@@ -42,7 +42,8 @@ class BottomNavBar extends StatelessWidget {
                     );
                   },
             icon: const Icon(Icons.home,
-                color: const Color(0xFF2CD6E9)), // White icon color for contrast
+                color:
+                    const Color(0xFF2CD6E9)), // White icon color for contrast
           ),
           IconButton(
             onPressed: () {
@@ -51,7 +52,8 @@ class BottomNavBar extends StatelessWidget {
                 MaterialPageRoute(builder: (context) => const RecordScreen()),
               );
             },
-            icon: const Icon(Icons.fiber_manual_record, color:const Color(0xFF2CD6E9)),
+            icon: const Icon(Icons.fiber_manual_record,
+                color: const Color(0xFF2CD6E9)),
           ),
           IconButton(
             onPressed: () {
@@ -74,7 +76,7 @@ class BottomNavBar extends StatelessWidget {
                 ),
               );
             },
-            icon: const Icon(Icons.person, color:const Color(0xFF2CD6E9)),
+            icon: const Icon(Icons.person, color: const Color(0xFF2CD6E9)),
           ),
         ],
       ),

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hack_space_temp/Screens/record_2.dart'; // Adjust the import path accordingly
 
-
 class RecordScreen extends StatefulWidget {
   const RecordScreen({super.key});
   @override
@@ -154,10 +153,11 @@ class _MapScreenState extends State<RecordScreen> {
             child: Center(
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(1.0), // Distinct background color to separate from map
+                  color: Colors.black.withOpacity(
+                      1.0), // Distinct background color to separate from map
                   shape: BoxShape.circle, // Circular container for Start button
                 ),
-                padding: const EdgeInsets.all(10),// Padding around the circle
+                padding: const EdgeInsets.all(10), // Padding around the circle
                 margin: const EdgeInsets.all(15), //margin around the circle
                 child: ElevatedButton(
                   onPressed: () {
@@ -169,20 +169,24 @@ class _MapScreenState extends State<RecordScreen> {
                   style: ElevatedButton.styleFrom(
                     shape: const CircleBorder(),
                     padding: const EdgeInsets.all(20),
-                    backgroundColor:const Color(0xFF00E5FF), // Blue Start button
+                    backgroundColor:
+                        const Color(0xFF00E5FF), // Blue Start button
                   ),
-                  child: const Text('START', style: TextStyle(fontSize: 18, color: Colors.black)),
+                  child: const Text('START',
+                      style: TextStyle(fontSize: 18, color: Colors.black)),
                 ),
               ),
             ),
           ),
           // Bottom buttons (Sport, Sensor, Music) like in your image
           Positioned(
-            bottom: 0, // Adjust the bottom positioning to match the image layout
+            bottom:
+                0, // Adjust the bottom positioning to match the image layout
             left: 0,
             right: 0,
             child: Container(
-              margin: const EdgeInsets.all(15), // Add margin around the bottom bar
+              margin:
+                  const EdgeInsets.all(15), // Add margin around the bottom bar
               padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
                 color: Colors.black.withOpacity(1.0),
