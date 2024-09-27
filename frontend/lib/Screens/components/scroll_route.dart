@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class RouteList extends StatelessWidget {
   final List<Map<String, dynamic>> routes;
@@ -25,7 +24,6 @@ class RouteList extends StatelessWidget {
       itemBuilder: (context, index) {
         final route = routes[index];
         final isSelected = index == selectedRouteIndex;
-
         return SizedBox(
           width: MediaQuery.of(context).size.width * 0.85,
           child: Card(
@@ -59,14 +57,14 @@ class RouteList extends StatelessWidget {
                         ),
                         child: Text(isSelected ? 'Selected' : 'Select Route'),
                       ),
-                      SizedBox(width: 10),
+                      const SizedBox(width: 10),
                       ElevatedButton(
                         onPressed: () {
                           // Implement route details view
                           // You can add a new screen or dialog to show more details about the route
                         },
                         style: ElevatedButton.styleFrom(elevation: 0),
-                        child: Text('See Details'),
+                        child: const Text('See Details'),
                       ),
                     ],
                   ),

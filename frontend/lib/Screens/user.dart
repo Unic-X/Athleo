@@ -28,7 +28,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
   int coins = 0;
   int today_dist = 0;
   int today_time = 0;
-  List achievements= [];
+  List achievements = [];
   List friends = [];
   List<RunningData> runningData = [];
   bool isLoading = true;
@@ -57,7 +57,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
         Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
         setState(() {
           userName = data['username'] ?? 'Unknown';
-          userName = userName[0].toUpperCase() + userName.substring(1).toLowerCase();
+          userName =
+              userName[0].toUpperCase() + userName.substring(1).toLowerCase();
           runningData = _parseRunningData(data['week_ac']);
           coins = data['coins'];
           today_dist = data['today_dist'];
@@ -66,8 +67,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
           friends = data['friends'];
           isLoading = false;
         });
-
-
       } else {
         setState(() {
           isLoading = false;
@@ -81,8 +80,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
         errorMessage = 'Failed to load user data';
       });
     }
-
-
   }
 
   List<RunningData> _parseRunningData(Map<String, dynamic> data) {
@@ -112,10 +109,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Your Progression', 
-        style: TextStyle(fontFamily: 'Nunito',
-            fontWeight: FontWeight.w600
-        ),
+        title: const Text(
+          'Your Progression',
+          style: TextStyle(fontFamily: 'Nunito', fontWeight: FontWeight.w600),
         ),
         backgroundColor: const Color(0xFF229DAB),
         actions: [
@@ -149,9 +145,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
                                 style: const TextStyle(
                                   fontFamily: 'Comfortaa',
                                   fontSize: 28,
-                                  fontWeight: FontWeight.w500, // Light weight for a sleek look
+                                  fontWeight: FontWeight
+                                      .w500, // Light weight for a sleek look
                                   color: Colors.black87,
-                                  letterSpacing: 0.5, // Slight letter spacing for a modern touch
+                                  letterSpacing:
+                                      0.5, // Slight letter spacing for a modern touch
                                 ),
                               ),
                               Container(
@@ -197,8 +195,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
                               _buildStat('Distance', '$today_dist',
                                   const Color(0xFFf3e035)),
                               const SizedBox(width: 10),
-                              _buildStat(
-                                  'Time', '$today_time', const Color(0xFFDF5C31)),
+                              _buildStat('Time', '$today_time',
+                                  const Color(0xFFDF5C31)),
                             ],
                           ),
                           const SizedBox(height: 20),
@@ -321,7 +319,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
                               ),
                             ),
                           ),
-
                         ],
                       ),
                     ),

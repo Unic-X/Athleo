@@ -1,73 +1,119 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:hack_space_temp/Screens/record_2.dart'; // Adjust the import path accordingly
+import 'package:hack_space_temp/Screens/record_2.dart';
+import 'package:hack_space_temp/Screens/map_style.dart';
+import 'package:geolocator/geolocator.dart';
 
 class RecordScreen extends StatefulWidget {
   const RecordScreen({super.key});
   @override
-  State<RecordScreen> createState() => _MapScreenState();
+  State<RecordScreen> createState() => _RecordScreenState();
 }
 
-class _MapScreenState extends State<RecordScreen> {
+class _RecordScreenState extends State<RecordScreen> {
   final Completer<GoogleMapController> _controller =
-      Completer<GoogleMapController>(); // Controller for Google Map
+      Completer<GoogleMapController>();
   final DraggableScrollableController _draggableController =
-      DraggableScrollableController(); // Controller for DraggableScrollableSheet
+      DraggableScrollableController();
 
-  LatLng currentLocation =
-      const LatLng(21.1282267, 81.7653267); // Initial location
+  LatLng currentLocation = const LatLng(21.1282267, 81.7653267);
   final Set<Marker> markers = {};
-  final Set<Polyline> polylines = {}; // Use this to draw the routes
-  double initialChildSize = 0.2; // Starting size of the draggable sheet
+  final Set<Polyline> polylines = {};
+  List<LatLng> polylineCoordinates = [];
+  StreamSubscription<Position>? positionStream;
+
+  double initialChildSize = 0.2;
+  double _currentZoom = 14.0;
 
   @override
   void initState() {
     super.initState();
-    setMarker();
+    _getCurrentLocation();
+    _listenToLocationChanges();
   }
 
-  void setMarker() async {
+  @override
+  void dispose() {
+    positionStream?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('Location services are disabled.');
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('Location permissions are denied');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error('Location permissions are permanently denied');
+    }
+
+    Position position = await Geolocator.getCurrentPosition();
+    setState(() {
+      currentLocation = LatLng(position.latitude, position.longitude);
+      _updateMarkerAndCamera();
+    });
+  }
+
+  void _listenToLocationChanges() {
+    const LocationSettings locationSettings = LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 10,
+    );
+    positionStream =
+        Geolocator.getPositionStream(locationSettings: locationSettings)
+            .listen((Position position) {
+      setState(() {
+        currentLocation = LatLng(position.latitude, position.longitude);
+        polylineCoordinates.add(currentLocation);
+        _updateMarkerAndCamera();
+        _updatePolylines();
+      });
+    });
+  }
+
+  void _updateMarkerAndCamera() async {
+    markers.clear();
     markers.add(
       Marker(
-        markerId: MarkerId('currentPos'),
+        markerId: const MarkerId('currentPos'),
         position: currentLocation,
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
       ),
     );
+
+    final GoogleMapController controller = await _controller.future;
+    controller.animateCamera(CameraUpdate.newCameraPosition(
+      CameraPosition(target: currentLocation, zoom: _currentZoom),
+    ));
   }
 
-  // Function to handle map tap and collapse the sheet
-  void _onMapTap() {
+  void _updatePolylines() {
     setState(() {
-      initialChildSize = 0.1; // Collapse the sheet when map is tapped
+      polylines.clear();
+      polylines.add(Polyline(
+        polylineId: const PolylineId('recordedRoute'),
+        points: polylineCoordinates,
+        color: Colors.blue,
+        width: 5,
+      ));
     });
-    _draggableController.animateTo(
-      0.1,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeIn,
-    );
   }
 
-  // Function to handle expanding the sheet to 0.4 when clicking the handle
-  void _onHandleTap() {
-    setState(() {
-      initialChildSize = 0.4; // Expand to 40% of the screen
-    });
-    _draggableController.animateTo(
-      0.4,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
-    );
-  }
-
-  // Placeholder functions for each map interaction button
-  void _toggleCompass() {
-    // Logic to toggle compass
-  }
-
-  void _toggleLayers() {
-    // Logic to toggle map layers
+  void _onMapTap(LatLng location) {
+    // Implement any specific behavior for map tap in record screen
   }
 
   void _zoomIn() async {
@@ -80,17 +126,53 @@ class _MapScreenState extends State<RecordScreen> {
     controller.animateCamera(CameraUpdate.zoomOut());
   }
 
+  void _goToUserPos() async {
+    final GoogleMapController controller = await _controller.future;
+    controller.animateCamera(CameraUpdate.newCameraPosition(
+      CameraPosition(target: currentLocation, zoom: _currentZoom),
+    ));
+  }
+
+  Widget _buildZoomControls() {
+    return Positioned(
+      top: 16,
+      right: 16,
+      child: Column(
+        children: [
+          FloatingActionButton(
+            mini: true,
+            onPressed: _goToUserPos,
+            child: const Icon(Icons.location_on),
+          ),
+          const SizedBox(height: 8),
+          FloatingActionButton(
+            heroTag: "zoomIn",
+            mini: true,
+            child: const Icon(Icons.add),
+            onPressed: _zoomIn,
+          ),
+          const SizedBox(height: 8),
+          FloatingActionButton(
+            heroTag: "zoomOut",
+            mini: true,
+            child: const Icon(Icons.remove),
+            onPressed: _zoomOut,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Record',
-            style: TextStyle(fontSize: 22)), // Title for Run Screen
+        title: const Text('Record', style: TextStyle(fontSize: 22)),
         backgroundColor: const Color(0xFF229DAB),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(Icons.settings), // Settings button
+            icon: const Icon(Icons.settings),
             onPressed: () {
               // Navigate to settings
             },
@@ -99,98 +181,61 @@ class _MapScreenState extends State<RecordScreen> {
       ),
       body: Stack(
         children: [
-          // Map section
           GoogleMap(
+            style: MapStyle().uber_style,
             mapType: MapType.normal,
             initialCameraPosition: CameraPosition(
               target: currentLocation,
-              zoom: 14,
+              zoom: _currentZoom,
             ),
             markers: markers,
             polylines: polylines,
-            onTap: (LatLng location) => _onMapTap(), // Collapse on map tap
+            onTap: _onMapTap,
             onMapCreated: (GoogleMapController controller) {
               _controller.complete(controller);
             },
           ),
-          // Floating buttons for map actions (like the side panel in the image)
+          _buildZoomControls(),
           Positioned(
-            right: 10,
-            top: 100,
-            child: Column(
-              children: [
-                FloatingActionButton(
-                  mini: true,
-                  onPressed: _toggleCompass,
-                  child: Icon(Icons.explore), // Compass button
-                ),
-                SizedBox(height: 10),
-                FloatingActionButton(
-                  mini: true,
-                  onPressed: _toggleLayers,
-                  child: Icon(Icons.layers), // Toggle map layers
-                ),
-                SizedBox(height: 10),
-                FloatingActionButton(
-                  mini: true,
-                  onPressed: _zoomIn,
-                  child: Icon(Icons.add), // Zoom in button
-                ),
-                SizedBox(height: 10),
-                FloatingActionButton(
-                  mini: true,
-                  onPressed: _zoomOut,
-                  child: Icon(Icons.remove), // Zoom out button
-                ),
-              ],
-            ),
-          ),
-          // Start Button Section
-          Positioned(
-            bottom: 87, // Positioned near the bottom of the screen
+            bottom: 87,
             left: 0,
             right: 0,
             child: Center(
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(
-                      1.0), // Distinct background color to separate from map
-                  shape: BoxShape.circle, // Circular container for Start button
+                  color: Colors.black.withOpacity(1.0),
+                  shape: BoxShape.circle,
                 ),
-                padding: const EdgeInsets.all(10), // Padding around the circle
-                margin: const EdgeInsets.all(15), //margin around the circle
+                padding: const EdgeInsets.all(10),
+                margin: const EdgeInsets.all(15),
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.push(
                       context,
                       PageRouteBuilder(
-                        pageBuilder: (context, animation, secondaryAnimation) => RunStatsPage(),
-                          // initialPace: "0:00 /KM", // Example pace
-                          // initialDistance: "0.00 KM", // Example distance
-
-                        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                          const begin = Offset(0.0, 1.0); // Start at the bottom
-                          const end = Offset.zero;        // End at the top (default position)
-                          const curve = Curves.easeInOut; // Smooth transition curve
-
-                          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                        pageBuilder: (context, animation, secondaryAnimation) =>
+                            RunStatsPage(),
+                        transitionsBuilder:
+                            (context, animation, secondaryAnimation, child) {
+                          const begin = Offset(0.0, 1.0);
+                          const end = Offset.zero;
+                          const curve = Curves.easeInOut;
+                          var tween = Tween(begin: begin, end: end)
+                              .chain(CurveTween(curve: curve));
                           var offsetAnimation = animation.drive(tween);
-
                           return SlideTransition(
                             position: offsetAnimation,
                             child: child,
                           );
                         },
-                        transitionDuration: Duration(milliseconds: 300), // Transition speed
+                        transitionDuration: const Duration(milliseconds: 300),
                       ),
                     );
-
                   },
                   style: ElevatedButton.styleFrom(
                     shape: const CircleBorder(),
                     padding: const EdgeInsets.all(20),
-                    backgroundColor:
-                        const Color(0xFF00E5FF), // Blue Start button
+                    backgroundColor: const Color(0xFF00E5FF),
                   ),
                   child: const Text('START',
                       style: TextStyle(fontSize: 18, color: Colors.black)),
@@ -198,44 +243,40 @@ class _MapScreenState extends State<RecordScreen> {
               ),
             ),
           ),
-          // Bottom buttons (Sport, Sensor, Music) like in your image
           Positioned(
-            bottom:
-                0, // Adjust the bottom positioning to match the image layout
+            bottom: 0,
             left: 0,
             right: 0,
             child: Container(
-              margin:
-                  const EdgeInsets.all(15), // Add margin around the bottom bar
+              margin: const EdgeInsets.all(15),
               padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
                 color: Colors.black.withOpacity(1.0),
                 borderRadius: BorderRadius.circular(30),
               ),
               child: Row(
-                mainAxisAlignment:
-                    MainAxisAlignment.spaceEvenly, // Space out buttons evenly
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   FloatingActionButton(
                     onPressed: () {
                       // Handle sport button press
                     },
-                    child: Icon(Icons.sports), // Icon for sport
                     backgroundColor: const Color(0xFF00E5FF),
+                    child: const Icon(Icons.sports),
                   ),
                   FloatingActionButton(
                     onPressed: () {
                       // Handle sensor button press
                     },
-                    child: Icon(Icons.sensors), // Icon for sensor
                     backgroundColor: const Color(0xFF00E5FF),
+                    child: const Icon(Icons.sensors),
                   ),
                   FloatingActionButton(
                     onPressed: () {
                       // Handle music button press
                     },
-                    child: Icon(Icons.music_note), // Icon for music
                     backgroundColor: const Color(0xFF00E5FF),
+                    child: const Icon(Icons.music_note),
                   ),
                 ],
               ),

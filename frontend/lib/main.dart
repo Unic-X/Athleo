@@ -24,7 +24,7 @@ class Athleo extends StatelessWidget {
         '/record': (context) => const RecordScreen(),
         '/login': (context) => const AuthPage(),
       },
-      title: "Fence Mate",
+      title: "Athleo",
       theme: ThemeData(
         primarySwatch: Colors.orange,
       ),
