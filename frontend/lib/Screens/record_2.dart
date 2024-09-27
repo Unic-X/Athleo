@@ -8,6 +8,7 @@ class RunStatsPage extends StatefulWidget {
 }
 
 class _RunStatsPageState extends State<RunStatsPage> {
+  bool _isRunning = true; // State variable to manage timer
   String time = "00:00:00";
   String pace = "0:00 /KM";
   String distance = "0.00 KM";
@@ -82,6 +83,44 @@ class _RunStatsPageState extends State<RunStatsPage> {
                 ),
               ],
             ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Toggle Button
+              Container(
+                decoration: BoxDecoration(
+                  color: _isRunning?Color(0xFF00E5FF).withOpacity(1.0):Colors.black.withOpacity(1.0),
+                  shape: BoxShape.circle,
+                ),
+                padding: const EdgeInsets.all(10),
+                margin: const EdgeInsets.all(15),
+                child: ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      if (_isRunning) {
+                        TimerManager().stopTimer(); // Stop the timer
+                      } else {
+                        TimerManager().startTimer(); // Start the timer
+                      }
+                      _isRunning = !_isRunning; // Toggle the running state
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    shape: const CircleBorder(),
+                    padding: const EdgeInsets.all(20),
+                    backgroundColor: _isRunning ? Colors.black : Color(0xFF00E5FF), // Change color based on state
+                  ),
+                  child: Text(
+                    _isRunning ? 'STOP' : 'RESUME',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: _isRunning ? Color(0xFF00E5FF) : Colors.black, // Change text color based on state
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

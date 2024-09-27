@@ -56,10 +56,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
           isLoading = false;
         });
       } else {
-        setState(() {
-          isLoading = false;
-          errorMessage = 'User document not found';
-        });
+        // setState(() {
+        //   isLoading = false;
+        //   errorMessage = 'User document not found';
+        // });
       }
     } catch (e) {
       print("Error fetching user data: $e");
