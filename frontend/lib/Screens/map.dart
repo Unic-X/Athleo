@@ -5,6 +5,8 @@ import 'package:hack_space_temp/Screens/map_style.dart';
 import 'package:hack_space_temp/Screens/components/scroll_route.dart';
 import 'package:hack_space_temp/Screens/components/bottom_nav_bar.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -13,8 +15,10 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  final Completer<GoogleMapController> _controller = Completer<GoogleMapController>();
-  final DraggableScrollableController _draggableController = DraggableScrollableController();
+  final Completer<GoogleMapController> _controller =
+      Completer<GoogleMapController>();
+  final DraggableScrollableController _draggableController =
+      DraggableScrollableController();
 
   LatLng currentLocation = const LatLng(21.1282267, 81.7653267);
   final Set<Marker> markers = {};
@@ -25,31 +29,14 @@ class _MapScreenState extends State<MapScreen> {
   double initialChildSize = 0.2;
   double _currentZoom = 14.0;
 
-  final List<Map<String, dynamic>> routes = [
-    {
-      'title': 'Miwok Loop',
-      'distance': '8.5mi',
-      'duration': '2h 42min',
-      'elevation': '1,447 ft',
-    },
-    {
-      'title': 'Valley Trail to Seaside',
-      'distance': '7.3mi',
-      'duration': '2h 15min',
-      'elevation': '1,200 ft',
-    },
-    {
-      'title': 'Marin Headlands Trail',
-      'distance': '5.4mi',
-      'duration': '1h 50min',
-      'elevation': '900 ft',
-    },
-  ];
+  List<Map<String, dynamic>> routes = [];
+  int? selectedRouteIndex;
 
   @override
   void initState() {
     super.initState();
     _getCurrentLocation();
+    getRoutes();
     _listenToLocationChanges();
   }
 
@@ -75,7 +62,7 @@ class _MapScreenState extends State<MapScreen> {
         return Future.error('Location permissions are denied');
       }
     }
-    
+
     if (permission == LocationPermission.deniedForever) {
       return Future.error('Location permissions are permanently denied');
     }
@@ -92,16 +79,16 @@ class _MapScreenState extends State<MapScreen> {
       accuracy: LocationAccuracy.high,
       distanceFilter: 10,
     );
-    positionStream = Geolocator.getPositionStream(locationSettings: locationSettings).listen(
-      (Position position) {
-        setState(() {
-          currentLocation = LatLng(position.latitude, position.longitude);
-          polylineCoordinates.add(currentLocation);
-          _updateMarkerAndCamera();
-          _updatePolylines();
-        });
-      }
-    );
+    positionStream =
+        Geolocator.getPositionStream(locationSettings: locationSettings)
+            .listen((Position position) {
+      setState(() {
+        currentLocation = LatLng(position.latitude, position.longitude);
+        polylineCoordinates.add(currentLocation);
+        _updateMarkerAndCamera();
+        _updatePolylines();
+      });
+    });
   }
 
   void _updateMarkerAndCamera() async {
@@ -120,14 +107,70 @@ class _MapScreenState extends State<MapScreen> {
     ));
   }
 
+  void getRoutes() async {
+    // Base URL
+    final baseUrl = 'http://192.168.75.26:3000/getroutes';
+
+    // Query parameters
+    final Map<String, String> queryParams = {
+      'param1': 'value1',
+      'param2': 'value2',
+      // Add more parameters as needed
+    };
+
+    // Create the URL with query parameters
+    final uri = Uri.parse(baseUrl).replace(queryParameters: queryParams);
+
+    print("Request URL: $uri");
+
+    try {
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        var data = jsonDecode(response.body);
+        setState(() {
+          routes = List<Map<String, dynamic>>.from(data['routes'].map((route) {
+            return {
+              'name': route['name'],
+              'coordinates': List<LatLng>.from(route['coord']
+                  .map((coord) => LatLng(coord['lat'], coord['lng']))),
+              'checkpoints': List<LatLng>.from(route['checkpts']
+                  .map((coord) => LatLng(coord['lat'], coord['lng']))),
+            };
+          }));
+        });
+        print("Routes fetched successfully. Count: ${routes.length}");
+      } else {
+        print("Failed to fetch routes. Status code: ${response.statusCode}");
+        print("Response body: ${response.body}");
+      }
+    } catch (e) {
+      print("Error fetching routes: $e");
+    }
+
+    // Don't forget to call _updatePolylines() after fetching routes
+    _updatePolylines();
+  }
+
   void _updatePolylines() {
-    polylines.clear();
-    polylines.add(Polyline(
-      polylineId: const PolylineId('userTrail'),
-      points: polylineCoordinates,
-      color: Colors.blue,
-      width: 5,
-    ));
+    setState(() {
+      polylines.clear();
+      for (int i = 0; i < routes.length; i++) {
+        polylines.add(Polyline(
+          polylineId: PolylineId('route_$i'),
+          points: routes[i]['coordinates'],
+          color: i == selectedRouteIndex ? Colors.blue : Colors.grey,
+          width: i == selectedRouteIndex ? 5 : 3,
+        ));
+      }
+    });
+  }
+
+  void selectRoute(int index) {
+    setState(() {
+      selectedRouteIndex = index;
+      _updatePolylines();
+    });
   }
 
   void _onMapTap() {
@@ -154,32 +197,19 @@ class _MapScreenState extends State<MapScreen> {
 
   void _zoomIn() async {
     final GoogleMapController controller = await _controller.future;
-    setState(() {
-      _currentZoom = _currentZoom + 1;
-      if (_currentZoom > 20) _currentZoom = 20;
-    });
-    controller.animateCamera(CameraUpdate.newCameraPosition(
-      CameraPosition(target: currentLocation, zoom: _currentZoom),
-    ));
+    controller.animateCamera(CameraUpdate.zoomIn());
   }
 
   void _zoomOut() async {
     final GoogleMapController controller = await _controller.future;
-    setState(() {
-      _currentZoom = _currentZoom - 1;
-      if (_currentZoom < 1) _currentZoom = 1;
-    });
-    controller.animateCamera(CameraUpdate.newCameraPosition(
-      CameraPosition(target: currentLocation, zoom: _currentZoom),
-    ));
+    controller.animateCamera(CameraUpdate.zoomOut());
   }
 
-  void _goToUserPos() async{
+  void _goToUserPos() async {
     final GoogleMapController controller = await _controller.future;
     setState(() {
       controller.animateCamera(CameraUpdate.newCameraPosition(
-        CameraPosition(target: currentLocation, zoom: _currentZoom)
-      ));
+          CameraPosition(target: currentLocation, zoom: _currentZoom)));
     });
   }
 
@@ -192,7 +222,7 @@ class _MapScreenState extends State<MapScreen> {
           FloatingActionButton(
             mini: true,
             onPressed: _goToUserPos,
-            child: Icon(Icons.location_on), // Compass button
+            child: Icon(Icons.location_on),
           ),
           SizedBox(height: 8),
           FloatingActionButton(
@@ -276,6 +306,8 @@ class _MapScreenState extends State<MapScreen> {
                         child: RouteList(
                           routes: routes,
                           scrollController: scrollController,
+                          onRouteSelected: selectRoute,
+                          selectedRouteIndex: selectedRouteIndex,
                         ),
                       ),
                     ],
