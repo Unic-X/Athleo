@@ -26,7 +26,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
   String? uid = FirebaseAuth.instance.currentUser?.uid;
   String userName = 'Unknown';
   int coins = 0;
-  int today_dist = 0;
+  double today_dist = 0;
   int today_time = 0;
   List achievements = [];
   List friends = [];
@@ -38,6 +38,25 @@ class _UserProfilePageState extends State<UserProfilePage> {
   void initState() {
     super.initState();
     _getUserdata();
+  }
+
+
+  String formatDistance(double distance) {
+    if (distance >= 1000) {
+      return "${(distance / 1000).toStringAsFixed(2)}";  // Convert to KM and truncate to 2 decimal places
+    } else {
+      return "${distance.toStringAsFixed(2)}";  // Truncate to 2 decimal places
+    }
+  }
+
+  String formatTime(int seconds) {
+    if (seconds >= 60) {
+      int minutes = seconds ~/ 60;
+      int remainingSeconds = seconds % 60;
+      return "${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}";  // Convert to MM:SS format
+    } else {
+      return "$seconds";  // Display in seconds if less than 60
+    }
   }
 
   void _getUserdata() async {
@@ -192,14 +211,14 @@ class _UserProfilePageState extends State<UserProfilePage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.start,
                             children: [
-                              _buildStat('Distance', '$today_dist',
+                              _buildStat('Distance', formatDistance(today_dist),
                                   const Color(0xFFf3e035)),
                               const SizedBox(width: 10),
-                              _buildStat('Time', '$today_time',
+                              _buildStat('Time', formatTime(today_time),
                                   const Color(0xFFDF5C31)),
                             ],
                           ),
-                          const SizedBox(height: 20),
+                            const SizedBox(height: 20),
                           Container(
                             height: 250,
                             padding: const EdgeInsets.all(16),

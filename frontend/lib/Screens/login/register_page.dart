@@ -6,6 +6,7 @@ import 'package:hack_space_temp/Screens/components/my_button.dart';
 import 'package:hack_space_temp/Screens/components/my_textfield.dart';
 import 'package:hack_space_temp/Screens/components/square_tile.dart';
 
+
 class Register_Page extends StatefulWidget {
   final Function()? onTap;
   const Register_Page({super.key, required this.onTap});

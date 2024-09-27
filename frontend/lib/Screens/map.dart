@@ -347,7 +347,10 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Center(child: Text('Home')),
+        title: const Center(child: Text(
+          'Home',
+          style: TextStyle(fontFamily: 'Nunito', fontWeight: FontWeight.w600),
+        )),
         backgroundColor: const Color(0xFF229DAB),
         automaticallyImplyLeading: false,
       ),

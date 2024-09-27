@@ -11,11 +11,13 @@ class RecordScreen extends StatefulWidget {
   State<RecordScreen> createState() => _RecordScreenState();
 }
 
+
 class _RecordScreenState extends State<RecordScreen> {
   final Completer<GoogleMapController> _controller =
       Completer<GoogleMapController>();
   final DraggableScrollableController _draggableController =
       DraggableScrollableController();
+  final StreamController<double> _distanceStreamController = StreamController<double>.broadcast();
 
   LatLng currentLocation = const LatLng(21.1282267, 81.7653267);
   final Set<Marker> markers = {};
@@ -35,6 +37,7 @@ class _RecordScreenState extends State<RecordScreen> {
 
   @override
   void dispose() {
+    _distanceStreamController.close();
     positionStream?.cancel();
     super.dispose();
   }
@@ -67,37 +70,89 @@ class _RecordScreenState extends State<RecordScreen> {
     });
   }
 
+  double _totalDistance = 0.0; // New variable to store total distance
+
   void _listenToLocationChanges() {
     const LocationSettings locationSettings = LocationSettings(
       accuracy: LocationAccuracy.high,
-      distanceFilter: 10,
+      distanceFilter: 0,
     );
-    positionStream =
-        Geolocator.getPositionStream(locationSettings: locationSettings)
-            .listen((Position position) {
-      setState(() {
-        currentLocation = LatLng(position.latitude, position.longitude);
-        polylineCoordinates.add(currentLocation);
-        _updateMarkerAndCamera();
-        _updatePolylines();
-      });
+
+    Timer.periodic(const Duration(seconds: 3), (timer) async {
+      try {
+        Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+        
+        setState(() {
+          LatLng newLocation = LatLng(position.latitude, position.longitude);
+          if (polylineCoordinates.isNotEmpty) {
+            _totalDistance += _calculateDistance(
+              polylineCoordinates.last, 
+              newLocation
+            );
+          }
+          currentLocation = newLocation;
+          polylineCoordinates.add(currentLocation);
+          _updateMarker();
+          _updatePolylines();
+          _printDistance(); // Print updated distance
+          _distanceStreamController.add(_totalDistance); 
+        });
+      } catch (e) {
+        print('Error getting location: $e');
+      }
     });
   }
 
-  void _updateMarkerAndCamera() async {
-    markers.clear();
-    markers.add(
-      Marker(
-        markerId: const MarkerId('currentPos'),
-        position: currentLocation,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-      ),
+  // New method to calculate distance between two points
+  double _calculateDistance(LatLng start, LatLng end) {
+    return Geolocator.distanceBetween(
+      start.latitude, 
+      start.longitude, 
+      end.latitude, 
+      end.longitude
     );
+  }
 
-    final GoogleMapController controller = await _controller.future;
-    controller.animateCamera(CameraUpdate.newCameraPosition(
-      CameraPosition(target: currentLocation, zoom: _currentZoom),
-    ));
+  void _printDistance() {
+    print('Total distance traveled: ${_totalDistance.toStringAsFixed(2)} meters');
+  }
+
+  // New method to update only the marker
+  void _updateMarker() {
+    setState(() {
+      markers.clear();
+      markers.add(
+        Marker(
+          markerId: const MarkerId('currentPos'),
+          position: currentLocation,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+        ),
+      );
+    });
+  }
+
+  bool _isFollowingUser = true;
+
+  void _updateMarkerAndCamera() async {
+    setState(() {
+      markers.clear();
+      markers.add(
+        Marker(
+          markerId: const MarkerId('currentPos'),
+          position: currentLocation,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+        ),
+      );
+    });
+
+    if (_isFollowingUser) {
+      final GoogleMapController controller = await _controller.future;
+      controller.animateCamera(CameraUpdate.newCameraPosition(
+        CameraPosition(target: currentLocation, zoom: _currentZoom),
+      ));
+    }
   }
 
   void _updatePolylines() {
@@ -131,6 +186,9 @@ class _RecordScreenState extends State<RecordScreen> {
     controller.animateCamera(CameraUpdate.newCameraPosition(
       CameraPosition(target: currentLocation, zoom: _currentZoom),
     ));
+    setState(() {
+      _isFollowingUser = true;
+    });
   }
 
   Widget _buildZoomControls() {
@@ -216,15 +274,12 @@ class _RecordScreenState extends State<RecordScreen> {
                     Navigator.push(
                       context,
                       PageRouteBuilder(
-                        pageBuilder: (context, animation, secondaryAnimation) =>
-                            RunStatsPage(),
-                        transitionsBuilder:
-                            (context, animation, secondaryAnimation, child) {
+                        pageBuilder: (context, animation, secondaryAnimation) => RunStatsPage(distanceStream: _distanceStreamController.stream),
+                        transitionsBuilder: (context, animation, secondaryAnimation, child) {
                           const begin = Offset(0.0, 1.0);
                           const end = Offset.zero;
                           const curve = Curves.easeInOut;
-                          var tween = Tween(begin: begin, end: end)
-                              .chain(CurveTween(curve: curve));
+                          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
                           var offsetAnimation = animation.drive(tween);
                           return SlideTransition(
                             position: offsetAnimation,
