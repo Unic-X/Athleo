@@ -93,9 +93,11 @@ class _RunStatsPageState extends State<RunStatsPage> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
-                  side: BorderSide(color: Colors.black, width: 5), // Thick black border
+                  side: BorderSide(
+                      color: Colors.black, width: 5), // Thick black border
                   padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30)),
                 ),
                 child: Icon(
                   _isRunning ? Icons.pause : Icons.play_arrow,
@@ -104,28 +106,6 @@ class _RunStatsPageState extends State<RunStatsPage> {
                 ),
               ),
               // Stop Button
-              ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    TimerManager().stopTimer(); // Stop the timer
-                    TimerManager().reset(); // Reset the timer to zero
-                    _isRunning = false;
-                    time = "00:00:00";
-                  });
-                  _navigateBackToRecord(); // Navigate back to record.dart
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  side: BorderSide(color: Colors.black, width: 5), // Thick black border
-                  padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                ),
-                child: Icon(
-                  Icons.stop,
-                  color: Colors.black,
-                  size: 30,
-                ),
-              ),
             ],
           ),
           SizedBox(height: 20), // Add some space at the bottom

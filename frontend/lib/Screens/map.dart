@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:math';
+import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +10,7 @@ import 'package:hack_space_temp/Screens/components/scroll_route.dart';
 import 'package:hack_space_temp/Screens/components/bottom_nav_bar.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'dart:ui' as ui;
 import 'dart:convert';
 
 class MapScreen extends StatefulWidget {
@@ -17,6 +20,8 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
+  BitmapDescriptor? customMarkerIcon;
+
   final Completer<GoogleMapController> _controller =
       Completer<GoogleMapController>();
   final DraggableScrollableController _draggableController =
@@ -89,12 +94,13 @@ class _MapScreenState extends State<MapScreen> {
         polylineCoordinates.add(currentLocation);
         _updateMarkerAndCamera();
         _updatePolylines();
+        _checkNearbyCheckpoints();
       });
     });
   }
 
   void _updateMarkerAndCamera() async {
-    markers.clear();
+    markers.removeWhere((marker) => marker.markerId.value == 'currentPos');
     markers.add(
       Marker(
         markerId: const MarkerId('currentPos'),
@@ -111,9 +117,8 @@ class _MapScreenState extends State<MapScreen> {
 
   void getRoutes() async {
     final url = Uri.parse(
-        'http://192.168.75.26:5000/getroutes?lat=${currentLocation.latitude}&lng=${currentLocation.longitude}&dist=10');
+        'http://54.147.52.167:5000/getroutes?lat=${currentLocation.latitude}&lng=${currentLocation.longitude}&dist=10');
 
-    // Add your authentication token here
     final user = FirebaseAuth.instance.currentUser!;
     final idToken = await user.getIdToken();
 
@@ -149,18 +154,104 @@ class _MapScreenState extends State<MapScreen> {
     _updatePolylines();
   }
 
+  Future<void> _loadCustomMarker() async {
+    final ByteData data =
+        await DefaultAssetBundle.of(context).load('assets/marker.png');
+    final Uint8List bytes = data.buffer.asUint8List();
+    final codec = await ui.instantiateImageCodec(bytes, targetWidth: 120);
+    final ui.FrameInfo fi = await codec.getNextFrame();
+    final image = await fi.image.toByteData(format: ui.ImageByteFormat.png);
+
+    setState(() {
+      customMarkerIcon =
+          BitmapDescriptor.fromBytes(image!.buffer.asUint8List());
+    });
+  }
+
   void _updatePolylines() {
     setState(() {
       polylines.clear();
+      markers.removeWhere((marker) =>
+          marker.markerId.value.startsWith('arrow_') ||
+          marker.markerId.value.startsWith('checkpoint_'));
+
       for (int i = 0; i < routes.length; i++) {
+        List<LatLng> coordinates = routes[i]['coordinates'];
         polylines.add(Polyline(
           polylineId: PolylineId('route_$i'),
-          points: routes[i]['coordinates'],
+          points: coordinates,
           color: i == selectedRouteIndex ? Colors.blue : Colors.grey,
           width: i == selectedRouteIndex ? 5 : 3,
         ));
+
+        // Add direction arrow
+        if (coordinates.length >= 2) {
+          _addDirectionArrow(coordinates, i);
+        }
+
+        // Add checkpoint markers only for the selected route
+        if (i == selectedRouteIndex) {
+          for (LatLng checkpoint in routes[i]['checkpoints']) {
+            markers.add(Marker(
+              markerId: MarkerId(
+                  'checkpoint_${i}_${checkpoint.latitude}_${checkpoint.longitude}'),
+              position: checkpoint,
+              icon: customMarkerIcon ?? BitmapDescriptor.defaultMarker,
+            ));
+          }
+        }
       }
     });
+  }
+
+  void _addDirectionArrow(List<LatLng> coordinates, int routeIndex) {
+    for (int i = 0; i < coordinates.length - 1; i += coordinates.length ~/ 4) {
+      LatLng start = coordinates[i];
+      LatLng end = coordinates[i + 1];
+
+      LatLng middlePoint = LatLng(
+        (start.latitude + end.latitude) / 2,
+        (start.longitude + end.longitude) / 2,
+      );
+
+      double rotation = _calculateRotation(start, end);
+      markers.add(Marker(
+        markerId: MarkerId('arrow_${routeIndex}_$i'),
+        position: middlePoint,
+        icon: customMarkerIcon ?? BitmapDescriptor.defaultMarker,
+        rotation: rotation,
+        anchor: Offset(0.5, 0.5),
+      ));
+    }
+  }
+
+  double _calculateRotation(LatLng start, LatLng end) {
+    return (atan2(
+              end.longitude - start.longitude,
+              end.latitude - start.latitude,
+            ) *
+            180 /
+            pi) -
+        90;
+  }
+
+  void _checkNearbyCheckpoints() {
+    if (selectedRouteIndex == null) return;
+
+    List<LatLng> checkpoints = routes[selectedRouteIndex!]['checkpoints'];
+    for (LatLng checkpoint in checkpoints) {
+      double distance = Geolocator.distanceBetween(
+        currentLocation.latitude,
+        currentLocation.longitude,
+        checkpoint.latitude,
+        checkpoint.longitude,
+      );
+
+      if (distance <= 20) {
+        print("Checkpoint reached!");
+        // You can add more logic here, like showing a notification or updating UI
+      }
+    }
   }
 
   void selectRoute(int index) {
