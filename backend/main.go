@@ -1,6 +1,7 @@
 package main
 
 import(
+    "os"
     "fmt"
     "log"
     "context"
@@ -34,6 +35,7 @@ func setupFirestore(){
 
 
 func main(){
+    fmt.Println(GOOGLE_API_KEY)
     router := chi.NewRouter()
     router.Get(
         "/getroutes",

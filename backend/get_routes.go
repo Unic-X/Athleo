@@ -10,7 +10,7 @@ import (
     "strconv"
 )
 
-const GOOGLE_API_KEY = "AIzaSyCyjScilOSsLsJLNGl4Xl7qpbuf1zSNMOs"
+var GOOGLE_API_KEY string
 const LAT float64 = 21.229767
 const LANG float64 = 81.335884
 
@@ -248,6 +248,8 @@ func setCheckpoints(routes []RouteDetails) {
 func getRoutes(w http.ResponseWriter, req *http.Request){
 
     queryParams := req.URL.Query()
+    
+    fmt.Println(GOOGLE_API_KEY)
 
     lat := queryParams.Get("lat")
     latfloat,_ := strconv.ParseFloat(lat, 64);
