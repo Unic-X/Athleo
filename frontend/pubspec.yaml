@@ -1,0 +1,40 @@
+name: hack_space_temp
+description: "A new Flutter project."
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.4 <4.0.0'
+
+
+dependencies:
+  flutter:
+    sdk: flutter
+  google_maps_flutter:
+  geolocator:
+  firebase_core: 
+  cloud_firestore : 
+  maps_toolkit :
+  rxdart: ^0.27.7
+  firebase_auth:
+  fl_chart: ^0.68.0
+
+
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+
+  flutter_lints: ^3.0.0
+
+
+flutter:
+  uses-material-design: true
+  assets:
+     - assets/images/
+     - lib/images/
+     - assets/greek-coin.png
