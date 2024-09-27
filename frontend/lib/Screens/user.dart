@@ -99,6 +99,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
       appBar: AppBar(
         title: const Text('Your Progression'),
         backgroundColor: const Color(0xFF229DAB),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _logOut,
+          ),
+        ],
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -294,11 +300,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 20),
-                          MyButton(
-                            text: "Log Out",
-                            onTap: _logOut,
-                          ),
+                          
                         ],
                       ),
                     ),
