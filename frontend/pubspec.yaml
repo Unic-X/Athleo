@@ -40,8 +40,9 @@ flutter:
   assets:
      - assets/images/
      - lib/images/
-     - assets/marker/
+     - assets/marker.png
      - assets/greek-coin.png
+     - assets/arrow.png
   fonts:
     - family: Comfortaa
       fonts:

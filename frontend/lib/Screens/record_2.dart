@@ -173,9 +173,12 @@ class _RunStatsPageState extends State<RunStatsPage> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
+
                   side: BorderSide(color: Colors.black, width: 5),
+
                   padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30)),
                 ),
                 child: Icon(
                   _isRunning ? Icons.pause : Icons.play_arrow,
@@ -184,6 +187,7 @@ class _RunStatsPageState extends State<RunStatsPage> {
                 ),
               ),
               // Stop Button
+
               ElevatedButton(
                 onPressed: _stopRunAndPushData,
                 style: ElevatedButton.styleFrom(
@@ -198,6 +202,7 @@ class _RunStatsPageState extends State<RunStatsPage> {
                   size: 30,
                 ),
               ),
+
             ],
           ),
           SizedBox(height: 20),
