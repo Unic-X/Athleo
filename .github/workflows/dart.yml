@@ -13,9 +13,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # Checkout the latest version of the code
     - name: Checkout repository
       uses: actions/checkout@v3
 
+    # Cache Flutter SDK
     - name: Cache Flutter SDK
       uses: actions/cache@v3
       with:
@@ -24,14 +26,21 @@ jobs:
         restore-keys: |
           flutter-${{ runner.os }}-
 
+    # Install Flutter SDK
     - name: Install Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.10.5' 
+        flutter-version: '3.10.5'  # Specify the Flutter version you are using
 
+    # Change to the project directory if it's not at the root
+    - name: Change to project directory
+      run: cd your_project_directory # Replace 'your_project_directory' with the actual path
+
+    # Run Flutter Pub Get to restore dependencies
     - name: Install dependencies
       run: flutter pub get
 
+    # Cache build artifacts
     - name: Cache build
       uses: actions/cache@v3
       with:
@@ -39,3 +48,7 @@ jobs:
         key: build-${{ runner.os }}-${{ hashFiles('pubspec.yaml') }}
         restore-keys: |
           build-${{ runner.os }}-
+
+    # Run tests
+    - name: Run tests
+      run: flutter test
