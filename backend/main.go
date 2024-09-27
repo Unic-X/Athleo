@@ -8,7 +8,7 @@ import(
     "net/http"
 	"cloud.google.com/go/firestore"
     "github.com/go-chi/chi/v5"
-    firebase "firebase.google.com/go"
+    "firebase.google.com/go"
     "firebase.google.com/go/auth"
     "google.golang.org/api/option"
 )
