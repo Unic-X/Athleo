@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hack_space_temp/Screens/map_style.dart';
@@ -109,26 +111,40 @@ class _MapScreenState extends State<MapScreen> {
 
   void getRoutes() async {
     final url = Uri.parse(
-        'http://192.168.75.26:3000/getroutes?lat=${currentLocation.latitude}&lng=${currentLocation.longitude}');
+        'http://192.168.75.26:5000/getroutes?lat=${currentLocation.latitude}&lng=${currentLocation.longitude}&dist=10');
+
+    // Add your authentication token here
+    final user = FirebaseAuth.instance.currentUser!;
+    final idToken = await user.getIdToken();
 
     try {
-      final response = await http.get(url);
-      var data = jsonDecode(response.body);
-      setState(() {
-        routes = List<Map<String, dynamic>>.from(data['routes'].map((route) {
-          return {
-            'name': route['name'],
-            'coordinates': List<LatLng>.from(route['coord']
-                .map((coord) => LatLng(coord['lat'], coord['lng']))),
-            'checkpoints': List<LatLng>.from(route['checkpts']
-                .map((coord) => LatLng(coord['lat'], coord['lng']))),
-          };
-        }));
-      });
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $idToken',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        var data = jsonDecode(response.body);
+        setState(() {
+          routes = List<Map<String, dynamic>>.from(data['routes'].map((route) {
+            return {
+              'name': route['name'],
+              'coordinates': List<LatLng>.from(route['coord']
+                  .map((coord) => LatLng(coord['lat'], coord['lng']))),
+              'checkpoints': List<LatLng>.from(route['checkpts']
+                  .map((coord) => LatLng(coord['lat'], coord['lng']))),
+            };
+          }));
+        });
+      } else {
+        print('Failed to load routes. Status code: ${response.statusCode}');
+      }
     } catch (e) {
-      print(e);
+      print('Error fetching routes: $e');
     }
-    ;
 
     _updatePolylines();
   }
