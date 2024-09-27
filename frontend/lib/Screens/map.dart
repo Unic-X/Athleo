@@ -108,47 +108,28 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void getRoutes() async {
-    // Base URL
-    final baseUrl = 'http://192.168.75.26:3000/getroutes';
-
-    // Query parameters
-    final Map<String, String> queryParams = {
-      'param1': 'value1',
-      'param2': 'value2',
-      // Add more parameters as needed
-    };
-
-    // Create the URL with query parameters
-    final uri = Uri.parse(baseUrl).replace(queryParameters: queryParams);
-
-    print("Request URL: $uri");
+    final url = Uri.parse(
+        'http://192.168.75.26:3000/getroutes?lat=${currentLocation.latitude}&lng=${currentLocation.longitude}');
 
     try {
-      final response = await http.get(uri);
-
-      if (response.statusCode == 200) {
-        var data = jsonDecode(response.body);
-        setState(() {
-          routes = List<Map<String, dynamic>>.from(data['routes'].map((route) {
-            return {
-              'name': route['name'],
-              'coordinates': List<LatLng>.from(route['coord']
-                  .map((coord) => LatLng(coord['lat'], coord['lng']))),
-              'checkpoints': List<LatLng>.from(route['checkpts']
-                  .map((coord) => LatLng(coord['lat'], coord['lng']))),
-            };
-          }));
-        });
-        print("Routes fetched successfully. Count: ${routes.length}");
-      } else {
-        print("Failed to fetch routes. Status code: ${response.statusCode}");
-        print("Response body: ${response.body}");
-      }
+      final response = await http.get(url);
+      var data = jsonDecode(response.body);
+      setState(() {
+        routes = List<Map<String, dynamic>>.from(data['routes'].map((route) {
+          return {
+            'name': route['name'],
+            'coordinates': List<LatLng>.from(route['coord']
+                .map((coord) => LatLng(coord['lat'], coord['lng']))),
+            'checkpoints': List<LatLng>.from(route['checkpts']
+                .map((coord) => LatLng(coord['lat'], coord['lng']))),
+          };
+        }));
+      });
     } catch (e) {
-      print("Error fetching routes: $e");
+      print(e);
     }
+    ;
 
-    // Don't forget to call _updatePolylines() after fetching routes
     _updatePolylines();
   }
 
