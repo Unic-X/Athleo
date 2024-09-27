@@ -14,7 +14,7 @@ class BottomNavBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 10),
       margin: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.8),
+        color: const Color(0xff17364C),
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
@@ -38,7 +38,7 @@ class BottomNavBar extends StatelessWidget {
                           builder: (context) => const MapScreen()),
                     );
                   },
-            icon: const Icon(Icons.home, color: Color(0xFF2CD6E9)),
+            icon: const Icon(Icons.home, color: Color(0xFFfffcf0)),
           ),
           IconButton(
             onPressed: () {
@@ -48,7 +48,7 @@ class BottomNavBar extends StatelessWidget {
               );
             },
             icon:
-                const Icon(Icons.fiber_manual_record, color: Color(0xFF2CD6E9)),
+                const Icon(Icons.fiber_manual_record, color: Color(0xFFfffcf0)),
           ),
           IconButton(
             onPressed: () {
@@ -72,7 +72,7 @@ class BottomNavBar extends StatelessWidget {
                 ),
               );
             },
-            icon: const Icon(Icons.person, color: Color(0xFF2CD6E9)),
+            icon: const Icon(Icons.person, color: Color(0xFFfffcf0)),
           ),
         ],
       ),

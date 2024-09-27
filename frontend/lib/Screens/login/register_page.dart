@@ -55,7 +55,7 @@ class _Register_Page extends State<Register_Page> {
           "sun": 0,
         },
         'coins':0,
-        'today_dist':0,
+        'today_dist':0.0,
         'today_time':0,
         'weight': 70,
         'height': 170,
