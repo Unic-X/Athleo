@@ -5,6 +5,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:hack_space_temp/Screens/components/bottom_nav_bar.dart';
 // import 'package:hack_space_temp/Screens/components/my_button.dart';
 import 'package:intl/intl.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
 
 class UserProfilePage extends StatefulWidget {
   final String userName;
@@ -21,6 +22,46 @@ class UserProfilePage extends StatefulWidget {
   @override
   State<UserProfilePage> createState() => _UserProfilePageState();
 }
+String advice = '';
+Future<String> generateAdvice({
+    required double todayDist,
+    required int todayTime,
+    required Map<String, dynamic> weekAc,
+    required int height,
+    required int weight,
+  }) async {
+    String userDataSummary = '''
+    Today, you ran a distance of $todayDist meters in $todayTime seconds.
+    Your weekly activity summary is: ${weekAc.map((key, value) => MapEntry(key, '${value.toString()} meters'))}.
+    Your height is ${height.toStringAsFixed(2)} meters and your weight is ${weight.toStringAsFixed(2)} kilograms.
+    ''';
+
+    final model = GenerativeModel(
+      model: 'gemini-1.5-pro',
+      apiKey: 'AIzaSyACou9Lb1KnQ4GHZtK-ci4_WGZNlfgD2pE',
+    );
+    
+    final prompt = '''
+    Based on the following user data, provide personalized health and fitness advice:
+    
+    $userDataSummary
+    
+    Please include recommendations for improving fitness, diet tips, and any suggestions for running efficiency.
+    ''';
+
+    try {
+      final result = await model.generateContent([Content.text(prompt)]);
+      return result.text ?? 'No advice generated.';
+    } catch (e) {
+      print('Error generating content: $e');
+      return 'Failed to generate advice. Please try again later.';
+    }
+  }
+
+
+// void main() async {
+//   await generateAdvice();
+// }
 
 List<FriendData> friendLeaderboard = [];
 
@@ -35,6 +76,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
   List<RunningData> runningData = [];
   bool isLoading = true;
   String errorMessage = '';
+  String aiAdvice = '';
+  bool isGeneratingAdvice = false;
 
   @override
   void initState() {
@@ -432,74 +475,149 @@ class _UserProfilePageState extends State<UserProfilePage> {
   }
 
   Widget _buildLeaderboard() {
-    // Create a combined leaderboard list with the user and friends
-    List<FriendData> fullLeaderboard = [
-      FriendData(username: userName, todayDist: today_dist, todayTime: today_time)
-    ]..addAll(friendLeaderboard);
+  // Create a combined leaderboard list with the user and friends
+  List<FriendData> fullLeaderboard = [
+    FriendData(username: userName, todayDist: today_dist, todayTime: today_time)
+  ]..addAll(friendLeaderboard);
 
-    // Sort the leaderboard based on distance
-    fullLeaderboard.sort((a, b) => b.todayDist.compareTo(a.todayDist));
+  // Sort the leaderboard based on distance
+  fullLeaderboard.sort((a, b) => b.todayDist.compareTo(a.todayDist));
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white, // Background color for the leaderboard
-        borderRadius: BorderRadius.circular(12), // Rounded corners
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.5), // Shadow color
-            spreadRadius: 2, // Spread radius
-            blurRadius: 5, // Blur radius
-            offset: const Offset(0, 3), // Shadow offset
+  return Container(
+    decoration: BoxDecoration(
+      color: Colors.white, // Background color for the leaderboard
+      borderRadius: BorderRadius.circular(12), // Rounded corners
+      boxShadow: [
+        BoxShadow(
+          color: Colors.grey.withOpacity(0.5), // Shadow color
+          spreadRadius: 2, // Spread radius
+          blurRadius: 5, // Blur radius
+          offset: const Offset(0, 3), // Shadow offset
+        ),
+      ],
+    ),
+    padding: const EdgeInsets.all(16), // Padding for the container
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Leaderboard',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
           ),
-        ],
-      ),
-      padding: const EdgeInsets.all(16), // Padding for the container
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Leaderboard',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
+        ),
+        const SizedBox(height: 10),
+        fullLeaderboard.isEmpty
+            ? const Text(
+                "No data to show.",
+                style: TextStyle(color: Colors.grey),
+              )
+            : ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: fullLeaderboard.length,
+                itemBuilder: (context, index) {
+                  final participant = fullLeaderboard[index];
+                  return ListTile(
+                    leading: Text(
+                      '#${index + 1}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    title: Text(
+                      participant.username == userName
+                          ? 'You'
+                          : participant.username,
+                    ),
+                    subtitle: Text(
+                      'Distance: ${formatDistance(participant.todayDist)}, Time: ${formatTime(participant.todayTime)}',
+                    ),
+                    tileColor: participant.username == userName
+                        ? Colors.yellow.withOpacity(0.2) // Highlight the user
+                        : null,
+                  );
+                },
+              ),
+        const SizedBox(height: 20),
+          Center(
+            child: TextButton(
+              onPressed: isGeneratingAdvice ? null : () async {
+                setState(() {
+                  isGeneratingAdvice = true;
+                });
+                try {
+                  DocumentSnapshot userDoc =
+                    await FirebaseFirestore.instance.collection('users').doc(uid).get();
+                  Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
+                  String generatedAdvice = await generateAdvice(
+                    todayDist: today_dist,
+                    todayTime: today_time,
+                    weekAc: data['week_ac'],
+                    height: data['height'],
+                    weight: data['weight'],
+                  );
+                  setState(() {
+                    aiAdvice = generatedAdvice;
+                    isGeneratingAdvice = false;
+                  });
+                } catch (e) {
+                  print('Error generating advice: $e');
+                  setState(() {
+                    aiAdvice = 'Failed to generate advice. Please try again later.';
+                    isGeneratingAdvice = false;
+                  });
+                }
+              },
+              style: TextButton.styleFrom(
+                backgroundColor: const Color(0xFF229DAB),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              ),
+              child: isGeneratingAdvice
+                ? const CircularProgressIndicator(color: Colors.white)
+                : const Text(
+                    'AI Coach',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
             ),
           ),
-          const SizedBox(height: 10),
-          fullLeaderboard.isEmpty
-              ? const Text(
-                  "No data to show.",
-                  style: TextStyle(color: Colors.grey),
-                )
-              : ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: fullLeaderboard.length,
-                  itemBuilder: (context, index) {
-                    final participant = fullLeaderboard[index];
-                    return ListTile(
-                      leading: Text(
-                        '#${index + 1}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      title: Text(
-                        participant.username == userName
-                            ? 'You'
-                            : participant.username,
-                      ),
-                      subtitle: Text(
-                        'Distance: ${formatDistance(participant.todayDist)}, Time: ${formatTime(participant.todayTime)}',
-                      ),
-                      tileColor: participant.username == userName
-                          ? Colors.yellow.withOpacity(0.2) // Highlight the user
-                          : null,
-                    );
-                  },
-                ),
+          if (aiAdvice.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'AI Coach Advice:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    aiAdvice,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
+
+
 
 
 }
