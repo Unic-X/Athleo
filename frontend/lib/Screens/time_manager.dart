@@ -1,5 +1,12 @@
 import 'dart:async';
 
+int coinsCollected = 0; // Coins counter
+
+Map<String,dynamic> selectedRoute = {};
+
+String? idToken = "";
+
+
 class TimerManager {
   static final TimerManager _instance = TimerManager._internal();
   factory TimerManager() => _instance;

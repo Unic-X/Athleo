@@ -1,14 +1,13 @@
 import 'dart:async';
-import 'dart:math';
 import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hack_space_temp/Screens/map_style.dart';
 import 'package:hack_space_temp/Screens/components/scroll_route.dart';
 import 'package:hack_space_temp/Screens/components/bottom_nav_bar.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:hack_space_temp/Screens/time_manager.dart';
 import 'package:http/http.dart' as http;
 import 'dart:ui' as ui;
 import 'dart:convert';
@@ -27,8 +26,7 @@ class _MapScreenState extends State<MapScreen> {
       Completer<GoogleMapController>();
   final DraggableScrollableController _draggableController =
       DraggableScrollableController();
-
-  LatLng currentLocation = const LatLng(21.1282267, 81.7653267);
+  LatLng currentLocation = const LatLng(21.2142137,81.3070345);
   final Set<Marker> markers = {};
   final Set<Polyline> polylines = {};
   List<LatLng> polylineCoordinates = [];
@@ -46,7 +44,6 @@ class _MapScreenState extends State<MapScreen> {
     _getCurrentLocation();
     getRoutes();
     _loadCustomMarker();
-    _loadArrow();
     _listenToLocationChanges();
   }
 
@@ -72,7 +69,7 @@ class _MapScreenState extends State<MapScreen> {
         return Future.error('Location permissions are denied');
       }
     }
-
+    
     if (permission == LocationPermission.deniedForever) {
       return Future.error('Location permissions are permanently denied');
     }
@@ -93,6 +90,7 @@ class _MapScreenState extends State<MapScreen> {
         Geolocator.getPositionStream(locationSettings: locationSettings)
             .listen((Position position) {
       setState(() {
+        print(currentLocation);
         currentLocation = LatLng(position.latitude, position.longitude);
         polylineCoordinates.add(currentLocation);
         _updateMarkerAndCamera();
@@ -165,19 +163,7 @@ class _MapScreenState extends State<MapScreen> {
     final ui.FrameInfo fi = await codec.getNextFrame();
     final image = await fi.image.toByteData(format: ui.ImageByteFormat.png);
     setState(() {
-      customMarkerIcon = BitmapDescriptor.bytes(image!.buffer.asUint8List());
-    });
-  }
-
-  Future<void> _loadArrow() async {
-    final ByteData data =
-        await DefaultAssetBundle.of(context).load('assets/arrow.png');
-    final Uint8List bytes = data.buffer.asUint8List();
-    final codec = await ui.instantiateImageCodec(bytes, targetWidth: 50);
-    final ui.FrameInfo fi = await codec.getNextFrame();
-    final image = await fi.image.toByteData(format: ui.ImageByteFormat.png);
-    setState(() {
-      arrowIcon = BitmapDescriptor.bytes(image!.buffer.asUint8List());
+      customMarkerIcon = BitmapDescriptor.fromBytes(image!.buffer.asUint8List());
     });
   }
 
@@ -197,12 +183,6 @@ class _MapScreenState extends State<MapScreen> {
           width: i == selectedRouteIndex ? 5 : 3,
         ));
 
-        // Add direction arrow
-        if (coordinates.length >= 2) {
-          _addDirectionArrow(coordinates, i);
-        }
-
-        // Add checkpoint markers only for the selected route
         if (i == selectedRouteIndex) {
           for (LatLng checkpoint in routes[i]['checkpoints']) {
             markers.add(Marker(
@@ -215,37 +195,6 @@ class _MapScreenState extends State<MapScreen> {
         }
       }
     });
-  }
-
-  void _addDirectionArrow(List<LatLng> coordinates, int routeIndex) {
-    for (int i = 0; i < coordinates.length - 1; i += coordinates.length ~/ 4) {
-      LatLng start = coordinates[i];
-      LatLng end = coordinates[i + 1];
-
-      LatLng middlePoint = LatLng(
-        (start.latitude + end.latitude) / 2,
-        (start.longitude + end.longitude) / 2,
-      );
-
-      double rotation = _calculateRotation(start, end);
-      markers.add(Marker(
-        markerId: MarkerId('arrow_${routeIndex}_$i'),
-        position: middlePoint,
-        icon: arrowIcon ?? BitmapDescriptor.defaultMarker,
-        rotation: rotation,
-        anchor: Offset(0.5, 0.5),
-      ));
-    }
-  }
-
-  double _calculateRotation(LatLng start, LatLng end) {
-    return (atan2(
-              end.longitude - start.longitude,
-              end.latitude - start.latitude,
-            ) *
-            180 /
-            pi) -
-        90;
   }
 
   void _checkNearbyCheckpoints() {
@@ -269,6 +218,12 @@ class _MapScreenState extends State<MapScreen> {
   void selectRoute(int index) {
     setState(() {
       selectedRouteIndex = index;
+      selectedRoute = {
+        'name': routes[index]['name'],
+        'coordinates': routes[index]['coordinates'],
+        'checkpoints': routes[index]['checkpoints'],
+      };
+      print(selectedRoute);
       _updatePolylines();
     });
   }

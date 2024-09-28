@@ -488,7 +488,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                             : participant.username,
                       ),
                       subtitle: Text(
-                        'Distance: ${formatDistance(participant.todayDist)} km, Time: ${formatTime(participant.todayTime)}',
+                        'Distance: ${formatDistance(participant.todayDist)}, Time: ${formatTime(participant.todayTime)}',
                       ),
                       tileColor: participant.username == userName
                           ? Colors.yellow.withOpacity(0.2) // Highlight the user
