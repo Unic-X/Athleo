@@ -7,6 +7,9 @@ import (
     "log"
     "net/http"
     "math"
+    "firebase.google.com/go/auth"
+    "google.golang.org/api/iterator"
+    "github.com/google/uuid"
     "strconv"
 )
 
@@ -95,11 +98,11 @@ type RouteResponse struct{
     Routes []RouteDetails `json:"routes"`
 }
 
-func getWaypoints(lat float64, lang float64) []string{
+func getWaypoints(lat float64, lang float64, dist float64) []string{
     var waypoints string 
     var wayPointsArray []string
-    latDiff := 0.3 / 111.0
-    langDiff := 0.3 / (111.0 * math.Cos(lat * math.Pi / 180.0))
+    latDiff :=  (0.12 * dist) / 111.0
+    langDiff := (0.12 * dist) / (111.0 * math.Cos(lat * math.Pi / 180.0))
 
     waypoints = fmt.Sprintf("%f,%f|%f,%f|%f,%f",
         lat + latDiff, lang,
@@ -109,9 +112,9 @@ func getWaypoints(lat float64, lang float64) []string{
     wayPointsArray = append(wayPointsArray, waypoints)
 
     waypoints = fmt.Sprintf("%f,%f|%f,%f|%f,%f",
-        lat - latDiff, lang,
+        lat, lang - langDiff,
         lat, lang + langDiff,
-        lat - latDiff, lang + langDiff,
+        lat + latDiff, lang - langDiff,
         )
     wayPointsArray = append(wayPointsArray, waypoints)
 
@@ -149,9 +152,9 @@ func sphericalDistance(lat1, lng1, lat2, lng2 float64) float64 {
     return distance
 }
 
-func fetchRoutes(lat float64, lng float64) []RouteDetails {
+func fetchRoutes(lat float64, lng float64, dist float64) []RouteDetails {
     var paths []RouteDetails
-    wayPointsArray := getWaypoints(lat, lng)
+    wayPointsArray := getWaypoints(lat, lng, dist)
     
     for pi := range(wayPointsArray){
         url := getDirectionsURL(lat, lng, wayPointsArray[pi]);
@@ -173,6 +176,9 @@ func fetchRoutes(lat float64, lng float64) []RouteDetails {
         }
 
         var coords []Coordinates
+        if(len(result.Routes) == 0){
+            continue;
+        }
         for j := range(result.Routes[0].Legs){
             for s := range(result.Routes[0].Legs[j].Steps){
                 pos := result.Routes[0].Legs[j].Steps[s].EndLocation
@@ -192,26 +198,114 @@ func fetchRoutes(lat float64, lng float64) []RouteDetails {
     return paths
 }
 
-func getCenter(routes []RouteDetails){
+func storeRoutes(routes []RouteDetails){
     for i := range(routes){
-        for j := 0; j < len(routes[i].Coord); j += 5 {
-            var avgCoord Coordinates
-            avgCoord.Lat = 0.0
-            avgCoord.Lng = 0.0
-            nearCoords := routes[i].Coord[j:j+5]
-            for k := range(nearCoords){
-                avgCoord.Lat = (avgCoord.Lat*float64(k) + nearCoords[k].Lat)/float64(k+1)
-                avgCoord.Lng = (avgCoord.Lng*float64(k) + nearCoords[k].Lng)/float64(k+1)
+        routeId := uuid.New().String()
+        for j := 0; j < len(routes[i].Coord); j += 10 {
+            var avgCoord struct{
+                Coord Coordinates
             }
-            _, _, err := fsClient.Collection("routes").Add(ctx, map[string]interface{}{
-                "avgCoord": avgCoord,
-                "routes":   routes,
+            avgCoord.Coord.Lat = 0.0
+            avgCoord.Coord.Lng = 0.0
+          
+            var nearCoords []Coordinates
+            if(j + 10 >= len(routes[i].Coord)){
+                nearCoords = routes[i].Coord[j:]
+            }else{
+                nearCoords = routes[i].Coord[j:j+10]
+            }
+            for k := range(nearCoords){
+                avgCoord.Coord.Lat = (avgCoord.Coord.Lat*float64(k) + nearCoords[k].Lat)/float64(k+1)
+                avgCoord.Coord.Lng = (avgCoord.Coord.Lng*float64(k) + nearCoords[k].Lng)/float64(k+1)
+            }
+
+            _, _, err := fsClient.Collection("avgCoords").Add(ctx, map[string]interface{}{
+                "avgCoord": map[string]float64{
+                    "lat": avgCoord.Coord.Lat,
+                    "lng": avgCoord.Coord.Lng,
+                },
+                "routeId": routeId,
             })
             if(err != nil){
                 log.Fatalf("Failed adding routes: %v", err)
             }
+            
+        }
+        routeData, err := json.Marshal(routes[i])
+        if err != nil {
+            log.Fatalf("Failed to marshal routes: %v", err)
+        }
+        _, _, err = fsClient.Collection("routes").Add(ctx, map[string]interface{}{
+            "routeId": routeId,
+            "route": string(routeData),
+        })
+        if(err != nil){
+            log.Fatalf("Failed adding routes: %v", err)
         }
     }
+}
+
+func cachedRoutes(lat float64, lng float64) []RouteDetails {
+    var routes []RouteDetails
+
+    const offset = 0.001
+
+    upLat := lat + offset
+    downLat := lat - offset
+    leftLng := lng - offset
+    rightLng := lng + offset
+
+    coordinates := []struct {
+        Lat float64
+        Lng float64
+    }{
+        {upLat, lng},
+        {downLat, lng},
+        {lat, rightLng},
+        {lat, leftLng},
+    }
+
+    iter := fsClient.Collection("avgCoords").
+        Where("avgCoord.lat", "<=", coordinates[0].Lat).
+        Where("avgCoord.lat", ">=", coordinates[1].Lat).
+        Where("avgCoord.lng", "<=", coordinates[2].Lng).
+        Where("avgCoord.lng", ">=", coordinates[3].Lng).
+        Documents(ctx)
+
+    routeIds := map[string]bool{}
+
+    for {
+        doc, err := iter.Next()
+        if err == iterator.Done {
+            break
+        }
+        if err != nil {
+            log.Fatalf("Failed to fetch avgCoords: %v", err)
+        }
+
+        routeId := doc.Data()["routeId"].(string)
+        routeIds[routeId] = true
+    }
+
+    for routeId := range routeIds {
+        routeDoc, err := fsClient.Collection("routes").Where("routeId", "==", routeId).Documents(ctx).Next()
+        if err == iterator.Done {
+            continue
+        }
+        if err != nil {
+            log.Fatalf("Failed to fetch routes for routeId %s: %v", routeId, err)
+        }
+
+        var route RouteDetails
+        routeData := routeDoc.Data()["route"].(string)
+        if err := json.Unmarshal([]byte(routeData), &route); err != nil {
+            log.Fatalf("Failed to unmarshal route data: %v", err)
+        }
+
+        routes = append(routes, route)
+    }
+
+    return routes
 }
 
 func setCheckpoints(routes []RouteDetails) {
@@ -245,18 +339,49 @@ func setCheckpoints(routes []RouteDetails) {
     }
 }
 
+func verifyIDToken(idToken string) (*auth.Token, error) {
+	token, err := authClient.VerifyIDToken(ctx, idToken)
+	if err != nil {
+		return nil, err
+	}
+	return token, nil
+}
+
 func getRoutes(w http.ResponseWriter, req *http.Request){
+
+    authHeader := req.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Missing Authorization Header", http.StatusUnauthorized)
+		return
+	}
+
+	token := authHeader[len("Bearer "):]
+
+	verifiedToken, err := verifyIDToken(token)
+	if err != nil {
+		http.Error(w, "Invalid Token", http.StatusUnauthorized)
+		return
+	}
+
+	fmt.Printf("Authenticated user UID: %s\n", verifiedToken.UID)
 
     queryParams := req.URL.Query()
     
-    fmt.Println(GOOGLE_API_KEY)
-
     lat := queryParams.Get("lat")
-    latfloat,_ := strconv.ParseFloat(lat, 64);
     lng := queryParams.Get("lng")
+    dist := queryParams.Get("dist")
+    latfloat,_ := strconv.ParseFloat(lat, 64);
     lngfloat,_ := strconv.ParseFloat(lng, 64);
-    
-    routes := fetchRoutes(latfloat, lngfloat)
+    distfloat,_ := strconv.ParseFloat(dist, 64);
+
+  
+    var routes []RouteDetails
+    isCached := true
+    routes = cachedRoutes(latfloat, lngfloat)
+    if(len(routes) == 0){
+        isCached = false
+        routes = fetchRoutes(latfloat, lngfloat, distfloat)
+    }
 
     fmt.Println("No of paths", len(routes))
     for i := range(routes){
@@ -284,7 +409,9 @@ func getRoutes(w http.ResponseWriter, req *http.Request){
         return
     }
 
-    //getCenter(routes)
+    if(isCached == false){
+        storeRoutes(routes)
+    }
 
     w.Header().Set("Content-Type", "application/json")
     w.Write(jsonRes)
