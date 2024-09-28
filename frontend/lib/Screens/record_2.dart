@@ -67,48 +67,56 @@ class _RunStatsPageState extends State<RunStatsPage> {
   }
   
   Future<void> _pushDataToFirebase() async {
-    final User? user = _auth.currentUser;
-    if (user != null) {
-      final String uid = user.uid;
-      final int currentTime = TimerManager().currentTime;
-      final String currentDay = _getCurrentDayAbbreviation();
+  final User? user = _auth.currentUser;
+  if (user != null) {
+    final String uid = user.uid;
+    final int currentTime = TimerManager().currentTime;
+    final String currentDay = _getCurrentDayAbbreviation();
+    
+    final DocumentReference userDoc = FirebaseFirestore.instance.collection('users').doc(uid);
+    
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      DocumentSnapshot snapshot = await transaction.get(userDoc);
       
-      final DocumentReference userDoc = FirebaseFirestore.instance.collection('users').doc(uid);
+      if (!snapshot.exists) {
+        throw Exception("User document does not exist!");
+      }
       
-      await FirebaseFirestore.instance.runTransaction((transaction) async {
-        DocumentSnapshot snapshot = await transaction.get(userDoc);
-        
-        if (!snapshot.exists) {
-          throw Exception("User document does not exist!");
-        }
-        
-        Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
-        Map<String, dynamic> weekAc = data['week_ac'] ?? {
-          "mon": 0,
-          "tue": 0,
-          "wed": 0,
-          "thu": 0,
-          "fri": 0,
-          "sat": 0,
-          "sun": 0,
-        };
-        
-        weekAc[currentDay] = (weekAc[currentDay] ?? 0) + _totalDistance;
-        
-        transaction.update(userDoc, {
-          'today_dist': _totalDistance,
-          'today_time': currentTime,
-          'week_ac': weekAc,
-        });
+      Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+      int currentCoins = data['coins'] ?? 0; // Get existing coins
+      
+      // Update weekly activity data
+      Map<String, dynamic> weekAc = data['week_ac'] ?? {
+        "mon": 0,
+        "tue": 0,
+        "wed": 0,
+        "thu": 0,
+        "fri": 0,
+        "sat": 0,
+        "sun": 0,
+      };
+      weekAc[currentDay] = (weekAc[currentDay] ?? 0) + _totalDistance;
+      
+      transaction.update(userDoc, {
+        'today_dist': _totalDistance,
+        'today_time': currentTime,
+        'week_ac': weekAc,
+        'coins': currentCoins + coinsCollected, // Add the collected coins to the total
       });
-      
-      print('Data pushed to Firebase: Distance: $_totalDistance, Time: $currentTime, Day: $currentDay');
-    } else {
-      print('No user logged in');
-    }
+    });
+    
+    print('Data pushed to Firebase: Distance: $_totalDistance, Time: $currentTime, Coins: $coinsCollected');
+  } else {
+    print('No user logged in');
   }
+}
+
+
+  
 
   void _stopRunAndPushData() async {
+
+    
     setState(() {
       _isRunning = false;
       TimerManager().stopTimer();

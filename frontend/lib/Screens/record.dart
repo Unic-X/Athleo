@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hack_space_temp/Screens/record_2.dart';
 import 'package:hack_space_temp/Screens/map_style.dart';
+import 'package:hack_space_temp/Screens/time_manager.dart';
 import 'package:geolocator/geolocator.dart';
 
 class RecordScreen extends StatefulWidget {
@@ -11,13 +13,13 @@ class RecordScreen extends StatefulWidget {
   State<RecordScreen> createState() => _RecordScreenState();
 }
 
-
 class _RecordScreenState extends State<RecordScreen> {
   final Completer<GoogleMapController> _controller =
       Completer<GoogleMapController>();
   final DraggableScrollableController _draggableController =
       DraggableScrollableController();
   final StreamController<double> _distanceStreamController = StreamController<double>.broadcast();
+  
 
   LatLng currentLocation = const LatLng(21.1282267, 81.7653267);
   final Set<Marker> markers = {};
@@ -28,11 +30,15 @@ class _RecordScreenState extends State<RecordScreen> {
   double initialChildSize = 0.2;
   double _currentZoom = 14.0;
 
+  double _totalDistance = 0.0;
+  bool _isFollowingUser = true;
+
   @override
   void initState() {
     super.initState();
     _getCurrentLocation();
     _listenToLocationChanges();
+    _drawSelectedRoute();
   }
 
   @override
@@ -70,42 +76,53 @@ class _RecordScreenState extends State<RecordScreen> {
     });
   }
 
-  double _totalDistance = 0.0; // New variable to store total distance
+
+  List<LatLng> checkpoints = selectedRoute['checkpoints']; // Get the checkpoints
+
 
   void _listenToLocationChanges() {
-    const LocationSettings locationSettings = LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 0,
-    );
+  Timer.periodic(const Duration(seconds: 3), (timer) async {
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
 
-    Timer.periodic(const Duration(seconds: 3), (timer) async {
-      try {
-        Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-        );
-        
-        setState(() {
-          LatLng newLocation = LatLng(position.latitude, position.longitude);
-          if (polylineCoordinates.isNotEmpty) {
-            _totalDistance += _calculateDistance(
-              polylineCoordinates.last, 
-              newLocation
-            );
+      print(selectedRoute);
+      
+      setState(() {
+        LatLng newLocation = LatLng(position.latitude, position.longitude);
+
+        // Check if the user is within 20 meters of any checkpoint
+        for (LatLng checkpoint in checkpoints) {
+          double distanceToCheckpoint = Geolocator.distanceBetween(
+            newLocation.latitude, newLocation.longitude, 
+            checkpoint.latitude, checkpoint.longitude
+          );
+          if (distanceToCheckpoint <= 20) {
+            coinsCollected++;
+            checkpoints.remove(checkpoint); // Remove the checkpoint after collecting the coin
+            print('Coin collected! Total coins: $coinsCollected');
           }
-          currentLocation = newLocation;
-          polylineCoordinates.add(currentLocation);
-          _updateMarker();
-          _updatePolylines();
-          _printDistance(); // Print updated distance
-          _distanceStreamController.add(_totalDistance); 
-        });
-      } catch (e) {
-        print('Error getting location: $e');
-      }
-    });
-  }
+        }
 
-  // New method to calculate distance between two points
+        if (polylineCoordinates.isNotEmpty) {
+          _totalDistance += _calculateDistance(
+            polylineCoordinates.last, 
+            newLocation
+          );
+        }
+        currentLocation = newLocation;
+        polylineCoordinates.add(currentLocation);
+        _updateMarker();
+        _updatePolylines();
+        _distanceStreamController.add(_totalDistance);
+      });
+    } catch (e) {
+      print('Error getting location: $e');
+    }
+  });
+}
+
   double _calculateDistance(LatLng start, LatLng end) {
     return Geolocator.distanceBetween(
       start.latitude, 
@@ -119,10 +136,9 @@ class _RecordScreenState extends State<RecordScreen> {
     print('Total distance traveled: ${_totalDistance.toStringAsFixed(2)} meters');
   }
 
-  // New method to update only the marker
   void _updateMarker() {
     setState(() {
-      markers.clear();
+      markers.removeWhere((marker) => marker.markerId.value == 'currentPos');
       markers.add(
         Marker(
           markerId: const MarkerId('currentPos'),
@@ -133,19 +149,8 @@ class _RecordScreenState extends State<RecordScreen> {
     });
   }
 
-  bool _isFollowingUser = true;
-
   void _updateMarkerAndCamera() async {
-    setState(() {
-      markers.clear();
-      markers.add(
-        Marker(
-          markerId: const MarkerId('currentPos'),
-          position: currentLocation,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-        ),
-      );
-    });
+    _updateMarker();
 
     if (_isFollowingUser) {
       final GoogleMapController controller = await _controller.future;
@@ -157,9 +162,9 @@ class _RecordScreenState extends State<RecordScreen> {
 
   void _updatePolylines() {
     setState(() {
-      polylines.clear();
+      polylines.removeWhere((polyline) => polyline.polylineId.value == 'userRoute');
       polylines.add(Polyline(
-        polylineId: const PolylineId('recordedRoute'),
+        polylineId: const PolylineId('userRoute'),
         points: polylineCoordinates,
         color: Colors.blue,
         width: 5,
@@ -167,8 +172,25 @@ class _RecordScreenState extends State<RecordScreen> {
     });
   }
 
-  void _onMapTap(LatLng location) {
-    // Implement any specific behavior for map tap in record screen
+  void _drawSelectedRoute() {
+    if (selectedRoute.isNotEmpty) {
+      setState(() {
+        polylines.add(Polyline(
+          polylineId: const PolylineId('selectedRoute'),
+          points: List<LatLng>.from(selectedRoute['coordinates']),
+          color: Colors.red,
+          width: 5,
+        ));
+        
+        for (LatLng checkpoint in selectedRoute['checkpoints']) {
+          markers.add(Marker(
+            markerId: MarkerId('checkpoint_${checkpoint.latitude}_${checkpoint.longitude}'),
+            position: checkpoint,
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          ));
+        }
+      });
+    }
   }
 
   void _zoomIn() async {
@@ -220,14 +242,14 @@ class _RecordScreenState extends State<RecordScreen> {
       ),
     );
   }
-
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Record Your Run',
-          style: TextStyle(fontFamily: 'Nunito', fontWeight: FontWeight.w600),
+        title: Text(
+          selectedRoute.isNotEmpty ? selectedRoute['name'] : 'Record Your Run',
+          style: const TextStyle(fontFamily: 'Nunito', fontWeight: FontWeight.w600),
         ),
         backgroundColor: const Color(0xFF229DAB),
         centerTitle: true,
@@ -251,9 +273,13 @@ class _RecordScreenState extends State<RecordScreen> {
             ),
             markers: markers,
             polylines: polylines,
-            onTap: _onMapTap,
             onMapCreated: (GoogleMapController controller) {
               _controller.complete(controller);
+            },
+            onCameraMove: (CameraPosition position) {
+              setState(() {
+                _isFollowingUser = false;
+              });
             },
           ),
           _buildZoomControls(),
@@ -263,7 +289,7 @@ class _RecordScreenState extends State<RecordScreen> {
             right: 0,
             child: Center(
               child: Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: Color(0xFF112939),
                   shape: BoxShape.circle,
                 ),
@@ -309,7 +335,7 @@ class _RecordScreenState extends State<RecordScreen> {
               margin: const EdgeInsets.all(15),
               padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
-                color: Color(0xFF112939),
+                color: const Color(0xFF112939),
                 borderRadius: BorderRadius.circular(30),
               ),
               child: Row(
