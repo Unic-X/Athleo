@@ -22,6 +22,8 @@ class UserProfilePage extends StatefulWidget {
   State<UserProfilePage> createState() => _UserProfilePageState();
 }
 
+List<FriendData> friendLeaderboard = [];
+
 class _UserProfilePageState extends State<UserProfilePage> {
   String? uid = FirebaseAuth.instance.currentUser?.uid;
   String userName = 'Unknown';
@@ -84,8 +86,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
           today_time = data['today_time'];
           achievements = data['achievements'];
           friends = data['friends'];
-          isLoading = false;
         });
+
+        // Fetch friends' data
+        await _fetchFriendsData();
       } else {
         setState(() {
           isLoading = false;
@@ -100,6 +104,47 @@ class _UserProfilePageState extends State<UserProfilePage> {
       });
     }
   }
+
+  Future<void> _fetchFriendsData() async {
+    List<FriendData> fetchedFriends = [];
+
+    for (String friendUid in friends) {
+      try {
+        DocumentSnapshot friendDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(friendUid)
+            .get();
+
+        if (friendDoc.exists) {
+          Map<String, dynamic> friendData = friendDoc.data() as Map<String, dynamic>;
+
+          // Ensure today_dist is treated as double
+          double todayDist = (friendData['today_dist'] as num?)?.toDouble() ?? 0.0;
+          int todayTime = friendData['today_time'] ?? 0;
+
+          fetchedFriends.add(
+            FriendData(
+              // uid: friendUid,
+              username: friendData['username'],
+              todayDist: todayDist,
+              todayTime: todayTime,
+            ),
+          );
+        }
+      } catch (e) {
+        print("Error fetching friend data for UID $friendUid: $e");
+      }
+    }
+
+    fetchedFriends.sort((a, b) => b.todayDist.compareTo(a.todayDist));  // Sort by distance
+
+    setState(() {
+      friendLeaderboard = fetchedFriends;
+      isLoading = false;
+    });
+  }
+
+
 
   List<RunningData> _parseRunningData(Map<String, dynamic> data) {
     print("Data content: $data");
@@ -164,11 +209,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
                                 style: const TextStyle(
                                   fontFamily: 'Comfortaa',
                                   fontSize: 28,
-                                  fontWeight: FontWeight
-                                      .w500, // Light weight for a sleek look
+                                  fontWeight: FontWeight.w500,
                                   color: Colors.black87,
-                                  letterSpacing:
-                                      0.5, // Slight letter spacing for a modern touch
+                                  letterSpacing: 0.5,
                                 ),
                               ),
                               Container(
@@ -218,7 +261,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                                   const Color(0xFFDF5C31)),
                             ],
                           ),
-                            const SizedBox(height: 20),
+                          const SizedBox(height: 20),
                           Container(
                             height: 250,
                             padding: const EdgeInsets.all(16),
@@ -338,6 +381,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
                               ),
                             ),
                           ),
+                          const SizedBox(height: 30),
+                          _buildLeaderboard(),  // Leaderboard added here
                         ],
                       ),
                     ),
@@ -385,7 +430,94 @@ class _UserProfilePageState extends State<UserProfilePage> {
       ),
     );
   }
+
+  Widget _buildLeaderboard() {
+    // Create a combined leaderboard list with the user and friends
+    List<FriendData> fullLeaderboard = [
+      FriendData(username: userName, todayDist: today_dist, todayTime: today_time)
+    ]..addAll(friendLeaderboard);
+
+    // Sort the leaderboard based on distance
+    fullLeaderboard.sort((a, b) => b.todayDist.compareTo(a.todayDist));
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white, // Background color for the leaderboard
+        borderRadius: BorderRadius.circular(12), // Rounded corners
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.5), // Shadow color
+            spreadRadius: 2, // Spread radius
+            blurRadius: 5, // Blur radius
+            offset: const Offset(0, 3), // Shadow offset
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16), // Padding for the container
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Leaderboard',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 10),
+          fullLeaderboard.isEmpty
+              ? const Text(
+                  "No data to show.",
+                  style: TextStyle(color: Colors.grey),
+                )
+              : ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: fullLeaderboard.length,
+                  itemBuilder: (context, index) {
+                    final participant = fullLeaderboard[index];
+                    return ListTile(
+                      leading: Text(
+                        '#${index + 1}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      title: Text(
+                        participant.username == userName
+                            ? 'You'
+                            : participant.username,
+                      ),
+                      subtitle: Text(
+                        'Distance: ${formatDistance(participant.todayDist)} km, Time: ${formatTime(participant.todayTime)}',
+                      ),
+                      tileColor: participant.username == userName
+                          ? Colors.yellow.withOpacity(0.2) // Highlight the user
+                          : null,
+                    );
+                  },
+                ),
+        ],
+      ),
+    );
+  }
+
+
 }
+
+class FriendData {
+  // final String uid;
+  final String username;
+  final double todayDist;
+  final int todayTime;
+
+  FriendData({
+    // required this.uid,
+    required this.username,
+    required this.todayDist,
+    required this.todayTime,
+  });
+}
+
 
 class RunningData {
   final DateTime date;
