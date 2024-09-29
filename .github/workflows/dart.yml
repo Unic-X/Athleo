@@ -1,4 +1,4 @@
-name: Flutter CI
+name: Flutter CI/CD
 
 on:
   push:
@@ -7,48 +7,74 @@ on:
   pull_request:
     branches:
       - main
+  release:
+    types: [created]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    
+    defaults:
+      run:
+        working-directory: frontend
+    
     steps:
-    # Checkout the latest version of the code
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    # Cache Flutter SDK
     - name: Cache Flutter SDK
       uses: actions/cache@v3
       with:
         path: ~/.pub-cache
-        key: flutter-${{ runner.os }}-${{ hashFiles('pubspec.yaml') }}
+        key: flutter-${{ runner.os }}-${{ hashFiles('frontend/pubspec.yaml') }}
         restore-keys: |
           flutter-${{ runner.os }}-
 
-    # Install Flutter SDK
     - name: Install Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.10.5'  # Specify the Flutter version you are using
-
-    # Change to the project directory if it's not at the root
-    - name: Change to project directory
-      run: cd your_project_directory # Replace 'your_project_directory' with the actual path
-
-    # Run Flutter Pub Get to restore dependencies
+        flutter-version: '3.24.3'
+        
+    - name: List Directory Contents
+      run: ls -R
+      
     - name: Install dependencies
       run: flutter pub get
-
-    # Cache build artifacts
+      
     - name: Cache build
       uses: actions/cache@v3
       with:
-        path: build
-        key: build-${{ runner.os }}-${{ hashFiles('pubspec.yaml') }}
+        path: frontend/build
+        key: build-${{ runner.os }}-${{ hashFiles('frontend/pubspec.yaml') }}
         restore-keys: |
           build-${{ runner.os }}-
+          
+    - name: Build APK
+      run: flutter build apk --release
 
-    # Run tests
-    - name: Run tests
-      run: flutter test
+    - name: Upload APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: release-apk
+        path: frontend/build/app/outputs/flutter-apk/app-release.apk
+
+  release:
+    needs: build
+    if: github.event_name == 'release' && github.event.action == 'created'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Download APK
+      uses: actions/download-artifact@v3
+      with:
+        name: release-apk
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./app-release.apk
+        asset_name: app-release.apk
+        asset_content_type: application/vnd.android.package-archive
