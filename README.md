@@ -23,7 +23,6 @@ Athleo also integrates social and AI-powered features for a comprehensive and en
 ## Demo
 https://github.com/user-attachments/assets/42d0c411-1c06-4aa4-b83e-b08df3bb9556
 
-
 ## Tech Stack
 ### Front-End
 - Flutter/Dart
